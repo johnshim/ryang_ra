@@ -22,23 +22,35 @@ FRONT_MONTH_CONTRACT = "ESM0"
 
 __DateTimeRe__ = re.compile(r"(\d{2}):(\d{2}):(\d{2}).(\d{3})")
 
+def quit(df, gf):
+    df.close()
+    gf.close()
+    sys.exit()
+
+# Prints formatted time (hhMMssmmm -> hh:MM:ss:mmm)
+def print_time(t):
+    s = list(str(t))
+    s.insert(6,":")
+    s.insert(4,":")
+    s.insert(2,":")
+    return ''.join(s)
+
 if __name__ == '__main__':
-    print "Validating"
 
     d_readCtr = 0
     g_readCtr = 0
 
+    mismatches = []
+
     # Load Dan data (yyyymmdd)
-    D_FN = DATA_FOLDER + "20100509"
+    D_FN = DATA_FOLDER + DATE
     df = tables.openFile(D_FN)
     
     # Load Geoff data
     G_FN = DATA_FOLDER + "CME_ES.20100509_only"
     gf = open(G_FN, 'r')
 
-    # Preliminary reading
-
-    # Read first line
+    # Preliminary Parsing / Checking
     d_line = getattr(df.root, FRONT_MONTH_CONTRACT).books[d_readCtr]
     g_line = gf.readline().split()
 
@@ -55,19 +67,19 @@ if __name__ == '__main__':
     if d_depth != d_line['bid'].shape[0]:
          print "Depth is not symmetrical in D Data."
          print "EXITING"
-         sys.exit()
+         quit(df, gf)
 
     # Check that we have the right front month
     if FRONT_MONTH_CONTRACT != g_line[0]:
         print "Front Months do not match"
         print "EXITING"
-        sys.exit()
+        quit(df, gf)
 
     while(True):
         
-        # Note: should double check that front month contract from G is correct
-
         # Compare time-stamps
+        # Note: D is CST, G is GMT so we add 5 hrs to D timestamp to convert all to GMT
+
         d_ts = d_line["timestamp_s"][0:-3]
         g_ts = g_line[2]
 
@@ -81,7 +93,7 @@ if __name__ == '__main__':
         d_time = int(str(int(hr) + 5) + mi + se + ms)
 
         if g_time == d_time:
-            print "date time match at", g_time, "=", d_time
+            #print "date time match at", g_time, "=", d_time
 
             # Check other data fields
             # ASSUMPTION: In geoff's data, the depth is constant
@@ -105,61 +117,98 @@ if __name__ == '__main__':
 
                 #print g_bids[2*i], float(d_bids[i,0])
                 if g_bids[2*i] != float(d_bids[i,0]) / 100:
-                    print "Bid Price Mismatch"
-                    time.sleep(1)
+                    curr_error = ["Bid Price Mismatch"]
+                    curr_error.append(g_time)
+                    mismatches.append(curr_error)
+                    #print "Bid Price Mismatch"
+                    #time.sleep(1)
             
                 #print g_bids[2*i + 1], float(d_bids[i,1])
                 if g_bids[2*i + 1] != float(d_bids[i,1]):
-                    print "Bid Vol Mismatch"
-                    time.sleep(1)
+                    curr_error = ["Bid Vol Mismatch"]
+                    curr_error.append(g_time)
+                    mismatches.append(curr_error)
+                    #print "Bid Vol Mismatch"
+                    #time.sleep(1)
 
                 # Check asks + volume
 
                 #print g_asks[2*i], float(d_asks[i,0])
                 if g_asks[2*i] != float(d_asks[i,0]) / 100:
-                    print "Ask Price Mismatch"
-                    time.sleep(1)
+                    curr_error = ["Ask Price Mismatch"]
+                    curr_error.append(g_time)
+                    mismatches.append(curr_error)
+                    #print "Ask Price Mismatch"
+                    #time.sleep(1)
             
                 #print g_asks[2*i + 1], float(d_asks[i,1])
                 if g_asks[2*i + 1] != float(d_asks[i,1]):
-                    print "Ask Vol Mismatch"
-                    time.sleep(1)
+                    curr_error = ["Ask Vol Mismatch"]
+                    curr_error.append(g_time)
+                    mismatches.append(curr_error)
+                    #print "Ask Vol Mismatch"
+                    #time.sleep(1)
 
 
             # increment both lines
             try:
                 d_readCtr += 1
                 d_line = getattr(df.root, FRONT_MONTH_CONTRACT).books[d_readCtr]
-            except:
-                print "END OF D FILE"
+            except IndexError:
+                #print "END OF D FILE"
                 break
 
             g_readCtr += 1
             g_line = gf.readline().split()
+            if not g_line:
+                #print "END of G FILE"
+                break
             
         else:
-            print "date time mismatch"
-            print "\tg_time =", g_time
-            print "\td_time =", d_time
+
+            curr_error = []
+
+            #print "date time mismatch"
+            #print "\tg_time =", g_time
+            #print "\td_time =", d_time
+
+
 
             if g_time < d_time:
+
+                curr_error.append("Unmatched Entry in G")
+                curr_error.append(g_time)
+                mismatches.append(curr_error)
+
                 # increment g_time
                 g_readCtr += 1
                 g_line = gf.readline().split()
+                if not g_line:
+                    #print "END OF G FILE"
+                    break
 
             if g_time > d_time:
+
+                curr_error.append("Unmatched Entry in D")
+                curr_error.append(d_time)
+                mismatches.append(curr_error)
+
                 # increment d_time (catching end of file)
                 d_readCtr += 1
                 try:
                     d_line = getattr(df.root, FRONT_MONTH_CONTRACT).books[d_readCtr]
-                except:
-                    print "END OF D FILE"
+                except IndexError:
+                    #print "END OF D FILE"
                     break
                 
-
-        #time.sleep(0.5)
+    # Print out summary information
     print "D entries read: ", d_readCtr
     print "G entries read: ", g_readCtr
 
-    print "Last D entry: ", d_time
-    print "Last G entry: ", g_time
+    print "Last D entry: ", print_time(d_time)
+    print "Last G entry: ", print_time(g_time)
+
+    for m in mismatches:
+        print m
+
+    quit(df, gf)
