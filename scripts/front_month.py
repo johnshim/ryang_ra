@@ -4,35 +4,10 @@
 import datetime as dt
 from math import ceil
 
-# temp vars
-DATE = dt.date(2010,5,9)
 CONTRACT = "ES"
-
-CONTRACT_MONTHS = [3,6,9,12]
-
-MONTH_CODES = {}
-MONTH_CODES[1] = "H"
-MONTH_CODES[2] = "H"
-MONTH_CODES[3] = "H"
-MONTH_CODES[4] = "M"
-MONTH_CODES[5] = "M"
-MONTH_CODES[6] = "M"
-MONTH_CODES[7] = "U"
-MONTH_CODES[8] = "U"
-MONTH_CODES[9] = "U"
-MONTH_CODES[10] = "Z"
-MONTH_CODES[11] = "Z"
-MONTH_CODES[12] = "Z"
+MONTH_CODES = {3:"H", 6:"M", 9:"U", 12:"Z"}
 
 def tests():
-    """
-    d = dt.date(2010,6,1)
-    print get_expiration_date(d)
-
-    d = dt.date(2011,6,10)
-    print get_expiration_date(d)
-    """
-
     fail = 0
 
     d = dt.date(2013,3,7)
@@ -67,14 +42,12 @@ def get_expiration_date(date):
     THURSDAY = 3
 
     if week_day < THURSDAY:
-        first_thursday = date.replace(day = 1 + (THURSDAY - week_day))
+        second_thursday = date.replace(day = 1 + (THURSDAY - week_day) + 7)
     elif week_day > THURSDAY:
-        first_thursday = date.replace(day = 1 + THURSDAY + (7 - week_day))
+        second_thursday = date.replace(day = 1 + THURSDAY + (7 - week_day) + 7)
     else:
-        first_thursday = first_day
+        second_thursday = first_day(day = 1 + 7)
         
-    second_thursday = first_thursday.replace(day = (first_thursday.day + 7))
-
     return second_thursday
     
 def get_front_month(date):
@@ -85,7 +58,7 @@ def get_front_month(date):
     day = date.day
 
     # Check if a month with an expiring contract
-    if month in CONTRACT_MONTHS:
+    if month in MONTH_CODES.keys():
 
         # Check if before expiration on current month
         # Roll-over occurs on second Thursday of each month
@@ -97,12 +70,12 @@ def get_front_month(date):
             return curr
         else:
             try:
-                curr = CONTRACT + str(MONTH_CODES[second_thursday.month + 1]) + str(second_thursday.year)[-1]
+                curr = CONTRACT + str(MONTH_CODES[second_thursday.month + 3]) + str(second_thursday.year)[-1]
             except KeyError: # December - rollover to next year
-                curr = CONTRACT + str(MONTH_CODES[1]) + str(second_thursday.year + 1)[-1]   
+                curr = CONTRACT + str(MONTH_CODES[3]) + str(second_thursday.year + 1)[-1]   
             return curr
 
-    elif month not in CONTRACT_MONTHS:
+    elif month not in MONTH_CODES.keys():
         # get next month
         next_month = ceil(float(month) / 3) * 3
         curr = CONTRACT + str(MONTH_CODES[next_month]) + str(year)[-1]
