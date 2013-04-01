@@ -16,6 +16,9 @@ START_TIME = dt.time(13, 59, 59, 999999) # 9am = 1400 GMT
 #END_TIME = dt.time(20, 00, 00, 1) # 3pm = 2000 GM
 END_TIME = dt.time(14, 00, 05, 1) # 3pm = 2000 GMT
 
+############################
+# Dan's definitions
+############################
 
 class BookTable(tables.IsDescription):
     """                                                                                                                                                                                              
@@ -45,6 +48,8 @@ class TradeTable(tables.IsDescription):
     quantity    = Int64Col()
     seqnum      = Int64Col()
 
+############################
+############################
 
 def tests():
     fail = 0
@@ -58,17 +63,18 @@ def tests():
 def to_ts(ts):
     return dt.datetime.fromtimestamp(float(ts)/1000000)
 
-if __name__ == "__main__":
+# date - yyyymmdd (string)
+def filter(date):
 
     # import the file
-    f = tables.openFile(DATA_FOLDER + "20111017")
+    f = tables.openFile(DATA_FOLDER + date)
 
-    # get the relevant contract
+    # get the front month contract only
     contract_name = get_front_month(DATE)
     front_contract = getattr(f.root, contract_name)
 
     print contract_name
-    print front_contract
+    #print front_contract
 
     # TODO: REWRITE USING WHERE STATEMENTS FOR EFFICIENCY
 
@@ -79,7 +85,10 @@ if __name__ == "__main__":
 
     # setup file for export
     f2 = tables.openFile("out", mode = "w", title = "outfile")
-    group = f2.createGroup("/", contract_name, contract_name)
+
+    # Changed to have same group across diff front mth contracts
+    group = f2.createGroup("/", "ES", "ES") 
+    #group = f2.createGroup("/", contract_name, contract_name)
     
     table = f2.createTable(group, "books", BookTable, "books books")
     table.append(selected_books)
@@ -87,7 +96,11 @@ if __name__ == "__main__":
     table2 = f2.createTable(group, "trades", TradeTable, "traes trdes")
     table2.append(selected_trades)
 
-    f2.close()
+    f2.close()    
+
+if __name__ == "__main__":
+
+    filter("20111017")
     
 
     #tests()
