@@ -10,7 +10,7 @@ from tables import *
 
 # VARS
 DATA_FOLDER = "/media/sf_Dropbox/Work/budish_ra/data/"
-DATE = dt.date(2011,10,16) # WTF?
+DATE = dt.date(2011,10,16) # is the day before - weird
 
 START_TIME = dt.time(13, 59, 59, 999999) # 9am = 1400 GMT
 #END_TIME = dt.time(20, 00, 00, 1) # 3pm = 2000 GM
@@ -64,7 +64,9 @@ def to_ts(ts):
     return dt.datetime.fromtimestamp(float(ts)/1000000)
 
 # date - yyyymmdd (string)
-def filter(date):
+#def filter(date):
+def filter():
+    date = "20111017"
 
     # import the file
     f = tables.openFile(DATA_FOLDER + date)
@@ -84,7 +86,7 @@ def filter(date):
     selected_trades = [x[:] for x in front_contract.trades if (to_ts(x['timestamp']).time() > START_TIME and to_ts(x['timestamp']).time() < END_TIME)]
 
     # setup file for export
-    f2 = tables.openFile("out", mode = "w", title = "outfile")
+    f2 = tables.openFile(DATA_FOLDER + date + "f", mode = "w", title = "outfile")
 
     # Changed to have same group across diff front mth contracts
     group = f2.createGroup("/", "ES", "ES") 
@@ -100,7 +102,7 @@ def filter(date):
 
 if __name__ == "__main__":
 
-    filter("20111017")
+    filter()
     
 
     #tests()
