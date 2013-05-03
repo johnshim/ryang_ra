@@ -1,0 +1,9 @@
+import random
+import math
+
+# first generate the random numbers (200,000)
+
+bids = []
+
+for i in xrange(200000):
+    bids.append(math.floor(random.normalvariate(50, 5)))
