@@ -1,15 +1,20 @@
 import random
 import math
 import time
+import collections
+import cython
+import numpy
 
 # first generate the random numbers (200,000)
 
 bids = []
 asks = []
 
-for i in xrange(100000):
-    bids.append(math.floor(random.normalvariate(50, 5)))
-    asks.append(math.floor(random.normalvariate(60, 10)))
+M = 100000
+
+for i in xrange(M):
+    bids.append(int(math.floor(random.normalvariate(1000, 20))))
+    asks.append(int(math.floor(random.normalvariate(1050, 10))))
 
 init = time.time()
 
@@ -17,6 +22,17 @@ init = time.time()
 
 bd = {}
 ad = {}
+
+barr = numpy.array(bids)
+aarr = numpy.array(asks)
+
+counts = numpy.bincount(barr)
+
+counts = [(i, v) for i, v in enumerate(counts) if v]
+
+print counts
+
+tc = time.time()
 
 for bid in bids:
     try:
@@ -30,11 +46,14 @@ for ask in asks:
     except:
         ad[ask] = 1
 
-print len(bids), len(asks), len(bd.keys()), len(ad.keys())
-
 t2 = time.time()
 
-print t2 - init
+print len(bids), len(asks), len(bd.keys()), len(ad.keys())
+
+#print "Aggregate S/D Curve: ", (t2 - init) * 1000
+print "AGG SD: ", 1000*(tc - init), 1000*(t2 - tc)
+
+t2 = time.time()
 
 # Find the market clearing price
 
@@ -49,7 +68,7 @@ prevs = supply
 
 guess = 0
 
-print maxbid, minask
+print "MB, MA", maxbid, minask
 
 if maxbid > minask:
 
@@ -100,8 +119,8 @@ if maxbid > minask:
         elif demand < supply:
             guess = guess - 1
 
-print demand, supply, guess
-
 t3 = time.time()    
 
-print t3 - t2
+print demand, supply, guess
+
+print "Find Market Clearing Price: ", (t3 - t2) * 1000
