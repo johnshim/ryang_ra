@@ -5,6 +5,8 @@ import collections
 import cython
 import numpy
 
+DEBUG = False
+
 # first generate the random numbers (200,000)
 
 bids = []
@@ -18,40 +20,37 @@ for i in xrange(M):
 
 init = time.time()
 
-# Process the data
+# Assemble Aggregate Supply / Demand
 
 bd = {}
 ad = {}
 
+bcd = {}
+acd = {}
+
+print (time.time() - init) * 1000
+
 barr = numpy.array(bids)
 aarr = numpy.array(asks)
 
-counts = numpy.bincount(barr)
+print (time.time() - init) * 1000
 
-counts = [(i, v) for i, v in enumerate(counts) if v]
+bcounts = numpy.bincount(barr)
+acounts = numpy.bincount(aarr)
 
-print counts
+print (time.time() - init) * 1000
+
+bcd = {i:v for i, v in enumerate(bcounts) if v}
+acd = {i:v for i, v in enumerate(acounts) if v}
+
+#print bcounts
 
 tc = time.time()
 
-for bid in bids:
-    try:
-        bd[bid] = bd[bid] + 1
-    except:
-        bd[bid] = 1
+bd = bcd
+ad = acd
 
-for ask in asks:
-    try:
-        ad[ask] = ad[ask] + 1
-    except:
-        ad[ask] = 1
-
-t2 = time.time()
-
-print len(bids), len(asks), len(bd.keys()), len(ad.keys())
-
-#print "Aggregate S/D Curve: ", (t2 - init) * 1000
-print "AGG SD: ", 1000*(tc - init), 1000*(t2 - tc)
+print "AGG SD: ", 1000*(tc - init)
 
 t2 = time.time()
 
@@ -80,7 +79,7 @@ if maxbid > minask:
         prevs = supply
 
         #guess = int(math.floor((maxbid + minask) / 2))
-        print "guess", guess
+        #print "guess", guess
 
         demand = 0
         supply = 0
@@ -97,7 +96,7 @@ if maxbid > minask:
             except:
                 supply = supply
 
-        print "D/S:", demand, supply
+        #print "D/S:", demand, supply
 
         if demand == supply:
             break
