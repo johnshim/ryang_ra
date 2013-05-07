@@ -28,29 +28,26 @@ int test(int n){
   timespec t0;
   clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t0);
   
-  int foomaxbid = *max_element(bids.begin(), bids.end());
-  //int foominbid = *min_element(bids.begin(), bids.end());
-  int foomaxask = *max_element(asks.begin(), asks.end());
-  int foominask = *min_element(asks.begin(), asks.end());
+  int maxbid = *max_element(bids.begin(), bids.end());
+  //int minbid = *min_element(bids.begin(), bids.end());
+  int maxask = *max_element(asks.begin(), asks.end());
+  int minask = *min_element(asks.begin(), asks.end());
   
-  vector<unsigned int> foob(foomaxbid+1);
-  vector<unsigned int> fooa(foomaxask+1);
+  vector<unsigned int> b(maxbid+1);
+  vector<unsigned int> a(maxask+1);
 
   for (unsigned int i = 0; i < bids.size(); i++){
-    foob[bids[i]]++;
+    b[bids[i]]++;
   }
   
   for (unsigned int i = 0; i < bids.size(); i++){
-    fooa[asks[i]]++;
+    a[asks[i]]++;
   }
   
   timespec t1, t2;
   clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t1);
 
   // Find Market Clearing Prices
-
-  int maxbid = foomaxbid;
-  int minask = foominask;
 
   int demand = -1;
   int supply = -1;
@@ -61,9 +58,9 @@ int test(int n){
   int prevg = 0;
   
   if (maxbid > minask){
-    guess = int(floor((maxbid + minask) / 2.0));
-    cout << "GS: \t" << guess << endl;
-    //guess = minask;
+    //guess = int(floor((maxbid + minask) / 2.0));
+    //cout << "GS: \t" << guess << endl;
+    guess = minask;
 
     while (1 == 1){
 
@@ -75,23 +72,23 @@ int test(int n){
 	supply = 0;
 
 	for (int i = guess; i <= maxbid; i++){
-	  demand += foob[i];
+	  demand += b[i];
 	}
 
 	for (int i = minask; i <= guess; i++){
-	  supply += fooa[i];
+	  supply += a[i];
 	}
       }
       else{
 	// if price goes up
 	if (prevg < guess){
-	  supply += fooa[guess];
-	  demand -= foob[prevg];
+	  supply += a[guess];
+	  demand -= b[prevg];
 	}
 	// if price goes down
 	else if (prevg > guess){
-	  supply -= fooa[prevg];
-	  demand += foob[guess];
+	  supply -= a[prevg];
+	  demand += b[guess];
 	}
       }
 
@@ -162,12 +159,13 @@ int test(int n){
     tempCLEAR.tv_sec = t2.tv_sec-t1.tv_sec;    
   }
 
-  cout<<"Computation Time: "<<temp.tv_sec<<"s \t : \t "<<temp.tv_nsec / 1000000.0<<"ms"<<endl;
+  cout<<"Total Time: "<<temp.tv_sec<<"s \t \t : \t "<<temp.tv_nsec / 1000000.0<<"ms"<<endl;
   cout<<"Aggregation Time: "<<tempAGG2.tv_sec<<"s \t : \t "<<tempAGG2.tv_nsec / 1000000.0<<"ms"<<endl;
   cout<<"Clearing Time: "<<tempCLEAR.tv_sec<<"s \t : \t "<<tempCLEAR.tv_nsec / 1000000.0<<"ms"<<endl;
-  cout << "maxbid:\t"<<maxbid<<"\t minask:\t"<<minask<<endl;
+  //cout << "maxbid:\t"<<maxbid<<"\t minask:\t"<<minask<<endl;
   cout <<"Market Clearing Price: "<< guess << endl;
   cout << "Demand: " << demand << "\t Supply: "<<supply << endl;
+  cout << endl << endl;
 
   return tempCLEAR.tv_nsec / 1000000.0;
 }
