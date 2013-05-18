@@ -12,14 +12,49 @@ def getNumpyHistoricalTimeseries(symbol,fromDate, toDate):
     header = f.readline().strip().split(",")
     return np.loadtxt(f, dtype=np.float, delimiter=",", converters={0: pl.datestr2num})
 
+def getStockData(symbol, fromDate, toDate):
+    n = getNumpyHistoricalTimeseries(symbol, d1, d2)
+
+    # Average daily volume over this period
+    volume = np.mean(n[:,5])
+    
+    close = n[:,4]
+    diff = np.diff(close)
+    pd = diff / close[:-1]
+
+    # Volatility (i.e. sd) of returns over this period
+    volatility = np.std(pd)
+
+    return (pd, volume, volatility)
+
 
 if __name__ == "__main__":
-    d1 = datetime.date(2012,1,1)
-    d2 = datetime.date(2012,1,5)
-    n = getNumpyHistoricalTimeseries("GOOG", d1, d2)
 
-    for i in n:
-        for x in i:
-            print x, 
-        print '\n'
+    stocks = ["GOOG", "AAPL", "YHOO", "MSFT", "NFLX", "DIS", "GS", "JPM"]
+
+    d1 = datetime.date(2012,1,1)
+    d2 = datetime.date(2013,1,1)
+
+    # Get the # of entries
+    obs = getStockData(stocks[0], d1, d2)[0].shape[0]
     
+    print "Stock \tVolume \tVolatility"
+    
+    returns = np.zeros([len(stocks),obs])
+
+    for s in xrange(len(stocks)):
+        x = getStockData(stocks[s], d1, d2)
+        print stocks[s], '\t', x[1], '\t', x[2]
+
+        print returns.shape, x[0].shape
+
+        returns[s,:] = x[0]
+
+        #returns = np.concatenate([returns, np.transpose(x[0])])
+
+        #try:
+        #    returns = np.concatenate(returns, x[0])
+        #except:
+        #    returns = x[0]
+
+    print np.corrcoef(returns)
