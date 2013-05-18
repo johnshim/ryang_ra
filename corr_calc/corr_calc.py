@@ -22,7 +22,7 @@ def getStockData(symbol, fromDate, toDate):
     diff = np.diff(close)
     pd = diff / close[:-1]
 
-    # Volatility (i.e. sd) of returns over this period
+    # SD of returns over this period
     volatility = np.std(pd)
 
     return (pd, volume, volatility)
@@ -46,15 +46,6 @@ if __name__ == "__main__":
         x = getStockData(stocks[s], d1, d2)
         print stocks[s], '\t', x[1], '\t', x[2]
 
-        print returns.shape, x[0].shape
-
         returns[s,:] = x[0]
-
-        #returns = np.concatenate([returns, np.transpose(x[0])])
-
-        #try:
-        #    returns = np.concatenate(returns, x[0])
-        #except:
-        #    returns = x[0]
 
     print np.corrcoef(returns)
