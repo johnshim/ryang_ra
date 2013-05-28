@@ -31,6 +31,17 @@ def getETFTicks():
 
     return tickers
 
+def getFuturesTicks():
+    futures = open('futures.csv', 'r')
+    x = csv.reader(futures)
+
+    tickers = []
+
+    for row in x:
+        tickers.append(row[0])
+
+    return tickers
+
 #
 # Begin External Code
 # Source: http://jiripik.me/2012/06/06/python-code-for-getting-market-data-from-finance-yahoo-com/
@@ -99,11 +110,16 @@ def getQuandlFuturesData(symbol, d1, d2):
     else:
         day2 = "0" + str(d2.day)
 
-    url = "http://www.quandl.com/api/v1/datasets/OFDP/FUTURE_" + symbol + ".csv?&trim_start=" + year1 + "-" + month1 + "-" + day1 + "&trim_end=" + year2 + "-" + month2 + "-" + day2 + "&sort_order=desc"
+    auth = "nJUsp4WDihQVBHDyqbPn"
+    url = "http://www.quandl.com/api/v1/datasets/OFDP/FUTURE_" + symbol + "1.csv?&trim_start=" + year1 + "-" + month1 + "-" + day1 + "&trim_end=" + year2 + "-" + month2 + "-" + day2 + "&sort_order=desc&auth_token=" + auth
+    #print url
 
     f = urllib2.urlopen(url)
     head = f.readline().strip().split(",")
-    data = np.loadtxt(f, dtype=np.float, delimiter=",", converters={0: pl.datestr2num})
+    try:
+        data = np.loadtxt(f, dtype=np.float, delimiter=",", converters={0: pl.datestr2num})
+    except:
+        print symbol, " NOTHING"
     
     return data
 
@@ -133,6 +149,8 @@ def getCorrMatrix(returns, write=False):
 
 if __name__ == "__main__":
 
+    e = []
+
     # Parameters
     minVolume = 10000000
     minCorr = 0.7
@@ -142,6 +160,8 @@ if __name__ == "__main__":
 
     etfs = getETFTicks()
 
+    futures = getFuturesTicks()
+
     stocks = stocks + etfs
 
     d1 = datetime.date(2011,1,1)
@@ -149,32 +169,44 @@ if __name__ == "__main__":
 
     # Get the # of entries
     try:
-        obs = getStockData(stocks[0], d1, d2)[0].shape[0]
+        #obs = getStockData(stocks[0], d1, d2)[0].shape[0]
+        obs = getFuturesData(futures[0], d1, d2)[0].shape[0]
     except:
-        print stocks[0]
+        print futures[0]
+        #print stocks[0]
     
     print "Ticker \tVolume \tVolatility"
-    returns = np.zeros([len(stocks),obs])
+    #returns = np.zeros([len(stocks),obs])
+    returns = np.zeros([len(futures),obs])
     
     ticks = {}
     ticklist = []
 
-    for s in xrange(len(stocks)):
+    #for s in xrange(len(stocks)):
+    for s in xrange(len(futures)):
+
+        print "currently getting ", futures[s]
+
         try:
-            x = getStockData(stocks[s], d1, d2)
+            #x = getStockData(stocks[s], d1, d2)
+            x = getFuturesData(futures[s], d1, d2)
         except:
+            e.append(futures[s])
+            print futures[s], " ERROR"
             # Usual problem: ticker was not live for full year
-            print stocks[s], " ERROR"
+            #sys.exit()
+            #print stocks[s], " ERROR"
             continue
 
 
         #
         # Filter for volume threshold
         #
-        if x[1] < minVolume:
-            continue
+        #if x[1] < minVolume:
+        #    continue
 
-        print stocks[s], '\t', x[1], '\t', x[2]
+        #print stocks[s], '\t', x[1], '\t', x[2]
+        print futures[s], '\t', x[1], '\t', x[2]
 
         try:
             returns[s,:] = 100 * x[0]
@@ -184,10 +216,17 @@ if __name__ == "__main__":
             continue
 
         # If successful, add to list of ticks that went through
-        ticks[stocks[s]] = {'volume':x[1], 'volatility':x[2]}
-        ticklist.append(stocks[s])
+        #ticks[stocks[s]] = {'volume':x[1], 'volatility':x[2]}
+        ticks[futures[s]] = {'volume':x[1], 'volatility':x[2]}
+        #ticklist.append(stocks[s])
+        ticklist.append(futures[s])
+
+
+
+    print returns
 
     corr = getCorrMatrix(returns)
+    print corr
     
     entries = []
 
@@ -199,6 +238,8 @@ if __name__ == "__main__":
                 t2 = ticklist[j]
                 entries.append([t1, t2, corr[i,j], ticks[t1]['volume'], ticks[t2]['volume'], ticks[t1]['volatility'], ticks[t2]['volatility']])
 
+
+    print "Correlations above threshold"
     for i in entries:
         print i
             
@@ -208,3 +249,6 @@ if __name__ == "__main__":
     writer.writerows(entries)
 
     csvout.close()
+
+    print "SUCCESS!"
+    print e
