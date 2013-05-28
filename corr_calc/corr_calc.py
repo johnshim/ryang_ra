@@ -51,7 +51,8 @@ def getFuturesTicks():
 # syntax http://ichart.yahoo.com/table.csv?s={Yahoo.Symbol.[isin]}&a={Von.M-1}&b={Von.T}&c={Von.J}&d={Bis.M}&e={Bis.T}&f={Bis. J}&g=d&y=0&z=jdsu&ignore=.csv
 
 def getNumpyHistoricalTimeseries(symbol,fromDate, toDate):
-    f = urllib2.urlopen('http://ichart.yahoo.com/table.csv?a='+ str(fromDate.month -1) +'&c='+ str(fromDate.year) +'&b=' + str(fromDate.day) + '&e='+  str(toDate.day) + '&d='+ str(toDate.month-1) +'&g=d&f=' + str(toDate.year) + '&s=' + symbol + '&ignore=.csv')
+    url = 'http://ichart.yahoo.com/table.csv?a='+ str(fromDate.month -1) +'&c='+ str(fromDate.year) +'&b=' + str(fromDate.day) + '&e='+  str(toDate.day) + '&d='+ str(toDate.month-1) +'&g=d&f=' + str(toDate.year) + '&s=' + symbol + '&ignore=.csv'
+    f = urllib2.urlopen(url)
     header = f.readline().strip().split(",")
     return np.loadtxt(f, dtype=np.float, delimiter=",", converters={0: pl.datestr2num})
 
@@ -64,14 +65,14 @@ def getNumpyHistoricalTimeseries(symbol,fromDate, toDate):
 #####
 
 def getStockData(symbol, fromDate, toDate):
-    n = getNumpyHistoricalTimeseries(symbol, d1, d2)
+    n = getNumpyHistoricalTimeseries(symbol, fromDate, toDate)
 
     # Average daily volume over this period
     volume = np.mean(n[:,5])
     close = n[:,4]
     diff = np.diff(close)
     try:
-        pd = diff / close[:-1]
+        pd = diff / close[1:]
     except:
         pd = diff
 
@@ -131,7 +132,7 @@ def getFuturesData(symbol, d1, d2):
     settle = data[:,4]
     
     diff = np.diff(settle)
-    pd = diff / settle[:-1]
+    pd = diff / settle[1:]
     
     volatility = np.std(pd)
 
@@ -164,20 +165,20 @@ if __name__ == "__main__":
 
     stocks = stocks + etfs
 
-    d1 = datetime.date(2011,1,1)
+    d1 = datetime.date(2011,6,1)
     d2 = datetime.date(2012,1,1)
 
     # Get the # of entries
     try:
-        #obs = getStockData(stocks[0], d1, d2)[0].shape[0]
-        obs = getFuturesData(futures[0], d1, d2)[0].shape[0]
+        obs = getStockData(stocks[0], d1, d2)[0].shape[0]
+        #obs = getFuturesData(futures[0], d1, d2)[0].shape[0]
     except:
-        print futures[0]
-        #print stocks[0]
+        #print futures[0]
+        print stocks[0]
     
     print "Ticker \tVolume \tVolatility"
-    #returns = np.zeros([len(stocks),obs])
-    returns = np.zeros([len(futures),obs])
+    returns = np.zeros([len(stocks),obs])
+    #returns = np.zeros([len(futures),obs])
     
     ticks = {}
     ticklist = []
@@ -185,17 +186,17 @@ if __name__ == "__main__":
     #for s in xrange(len(stocks)):
     for s in xrange(len(futures)):
 
-        print "currently getting ", futures[s]
+        #print "currently getting ", futures[s]
 
         try:
-            #x = getStockData(stocks[s], d1, d2)
-            x = getFuturesData(futures[s], d1, d2)
+            x = getStockData(stocks[s], d1, d2)
+            #x = getFuturesData(futures[s], d1, d2)
         except:
-            e.append(futures[s])
-            print futures[s], " ERROR"
+            #e.append(futures[s])
+            #print futures[s], " ERROR"
             # Usual problem: ticker was not live for full year
             #sys.exit()
-            #print stocks[s], " ERROR"
+            print stocks[s], " ERROR"
             continue
 
 
@@ -205,21 +206,23 @@ if __name__ == "__main__":
         #if x[1] < minVolume:
         #    continue
 
-        #print stocks[s], '\t', x[1], '\t', x[2]
-        print futures[s], '\t', x[1], '\t', x[2]
+        print stocks[s], '\t', x[1], '\t', x[2]
+        #print futures[s], '\t', x[1], '\t', x[2]
 
         try:
             returns[s,:] = 100 * x[0]
         except:
             # Usual problem: ticker was not live for full year
             print stocks[s], " MATRIX ERROR"
+            #print futures[s], " MATRIX ERROR"
+            print x[0].shape, " != obs (", obs, ")"
             continue
 
         # If successful, add to list of ticks that went through
-        #ticks[stocks[s]] = {'volume':x[1], 'volatility':x[2]}
-        ticks[futures[s]] = {'volume':x[1], 'volatility':x[2]}
-        #ticklist.append(stocks[s])
-        ticklist.append(futures[s])
+        ticks[stocks[s]] = {'volume':x[1], 'volatility':x[2]}
+        #ticks[futures[s]] = {'volume':x[1], 'volatility':x[2]}
+        ticklist.append(stocks[s])
+        #ticklist.append(futures[s])
 
 
 
@@ -237,7 +240,6 @@ if __name__ == "__main__":
                 t1 = ticklist[i]
                 t2 = ticklist[j]
                 entries.append([t1, t2, corr[i,j], ticks[t1]['volume'], ticks[t2]['volume'], ticks[t1]['volatility'], ticks[t2]['volatility']])
-
 
     print "Correlations above threshold"
     for i in entries:
