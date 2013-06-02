@@ -42,6 +42,18 @@ def getFuturesTicks():
 
     return tickers
 
+def getBBGTicks():
+    bbg = open('futures_blp_ticksonly.csv', 'r')
+    x = csv.reader(bbg)
+
+    tickers = []
+
+    for row in x:
+        tickers.append(row[0])
+
+    return tickers
+
+
 #
 # Begin External Code
 # Source: http://jiripik.me/2012/06/06/python-code-for-getting-market-data-from-finance-yahoo-com/
@@ -70,6 +82,7 @@ def getStockData(symbol, fromDate, toDate):
     # Average daily volume over this period
     volume = np.mean(n[:,5])
     close = n[:,4]
+    adjclose = n[:,6]
     diff = np.diff(close)
     try:
         pd = diff / close[1:]
@@ -82,7 +95,7 @@ def getStockData(symbol, fromDate, toDate):
     except:
         volatility = 0
 
-    return (pd, volume, volatility)
+    return (pd, volume, volatility, close, adjclose)
 
 #####
 # Get Futures from Quandl
@@ -124,7 +137,7 @@ def getQuandlFuturesData(symbol, d1, d2):
     
     return data
 
-def getFuturesData(symbol, d1, d2):
+def getQFuturesData(symbol, d1, d2):
 
     data = getQuandlFuturesData(symbol, d1, d2)
     
@@ -138,13 +151,48 @@ def getFuturesData(symbol, d1, d2):
 
     return (pd, volume, volatility)
 
+def getBloombergData(symbol):
+    loc = '/media/sf_Dropbox/cross_OS'
+
+    f = open(loc + '/Data/blp_data_' + symbol + '.csv')
+
+    returns = []
+    vlm = []
+
+    for line in f:
+        #print line
+        l = line.strip().split(',')
+
+        if l[0] != '0':
+            returns.append(float(l[0]))
+
+        if l[1] != '0':
+            vlm.append(float(l[1]))
+
+        #print l
+
+    f.close()
+
+    # Process
+    vlm = sum(vlm) / len(vlm)
+    print vlm # avg
+
+    returns = np.array(returns)
+    diff = np.diff(returns)
+
+    pdiff = diff / returns[1:]
+
+    vol = np.std(pdiff)
+
+    return (pdiff, vlm, vol)
+
 def getCorrMatrix(returns, write=False):
 
     # Filter out all tickers with errors
     returns = returns[~np.all(returns == 0, axis = 1)]
 
     if (write == True):
-        np.savetxt("corr_calc.out", returns, delimiter=',')
+        np.savetxt("corr_calc.corrmatrix", returns, delimiter=',')
 
     return np.corrcoef(returns)
 
@@ -153,8 +201,8 @@ if __name__ == "__main__":
     e = []
 
     # Parameters
-    minVolume = 10000000
-    minCorr = 0.7
+    minVolume = 10000
+    minCorr = 0.8
 
     stocks = getSPTicks()
     ticks = []
@@ -163,39 +211,78 @@ if __name__ == "__main__":
 
     futures = getFuturesTicks()
 
+    bbgfutures = getBBGTicks()
+
     stocks = stocks + etfs
 
-    d1 = datetime.date(2011,6,1)
-    d2 = datetime.date(2012,1,1)
+    d1 = datetime.date(2010,1,1)
+    d2 = datetime.date(2011,1,1)
 
     # Get the # of entries
     try:
         obs = getStockData(stocks[0], d1, d2)[0].shape[0]
-        #obs = getFuturesData(futures[0], d1, d2)[0].shape[0]
+        print obs
+        obs = getBloombergData(bbgfutures[0])[0].shape[0]
+        print obs
     except:
-        #print futures[0]
-        print stocks[0]
+        #print stocks[0]
+        print bbgfutures[0]
     
     print "Ticker \tVolume \tVolatility"
-    returns = np.zeros([len(stocks),obs])
+    #returns = np.zeros([len(stocks),obs])
     #returns = np.zeros([len(futures),obs])
+    returns = np.zeros([len(bbgfutures) + len(stocks),obs])
     
     ticks = {}
     ticklist = []
 
     #for s in xrange(len(stocks)):
-    for s in xrange(len(futures)):
+    for s in xrange(len(bbgfutures)):
+        
+        print "currently getting ", bbgfutures[s]
 
-        #print "currently getting ", futures[s]
+        try:
+            #x = getStockData(stocks[s], d1, d2)
+            x = getBloombergData(bbgfutures[s])
+        except:
+            #e.append(futures[s])
+            print bbgfutures[s], " ERROR"
+            # Usual problem: ticker was not live for full year
+            #sys.exit()
+            #print stocks[s], " ERROR"
+            continue
+
+
+        #
+        # Filter for volume threshold
+        #
+        if x[1] < minVolume:
+            continue
+
+        #print stocks[s], '\t', x[1], '\t', x[2]
+        print bbgfutures[s], '\t', x[1], '\t', x[2]
+
+        try:
+            returns[s,:] = 100 * x[0]
+        except:
+            # Usual problem: ticker was not live for full year
+            #print stocks[s], " MATRIX ERROR"
+            print bbgfutures[s], " MATRIX ERROR"
+            print x[0].shape, " != obs (", obs, ")"
+            returns[s,:obs] = 100 * x[0][:obs]
+            continue
+
+        # If successful, add to list of ticks that went through
+        #ticks[stocks[s]] = {'volume':x[1], 'volatility':x[2]}
+        ticks[bbgfutures[s]] = {'volume':x[1], 'volatility':x[2]}
+        #ticklist.append(stocks[s])
+        ticklist.append(bbgfutures[s])
+    for s in range(len(stocks)):
 
         try:
             x = getStockData(stocks[s], d1, d2)
-            #x = getFuturesData(futures[s], d1, d2)
         except:
-            #e.append(futures[s])
-            #print futures[s], " ERROR"
             # Usual problem: ticker was not live for full year
-            #sys.exit()
             print stocks[s], " ERROR"
             continue
 
@@ -203,34 +290,28 @@ if __name__ == "__main__":
         #
         # Filter for volume threshold
         #
-        #if x[1] < minVolume:
-        #    continue
+        if x[1] < minVolume:
+            continue
 
         print stocks[s], '\t', x[1], '\t', x[2]
-        #print futures[s], '\t', x[1], '\t', x[2]
 
         try:
             returns[s,:] = 100 * x[0]
         except:
             # Usual problem: ticker was not live for full year
             print stocks[s], " MATRIX ERROR"
-            #print futures[s], " MATRIX ERROR"
             print x[0].shape, " != obs (", obs, ")"
             continue
 
         # If successful, add to list of ticks that went through
         ticks[stocks[s]] = {'volume':x[1], 'volatility':x[2]}
-        #ticks[futures[s]] = {'volume':x[1], 'volatility':x[2]}
         ticklist.append(stocks[s])
-        #ticklist.append(futures[s])
 
-
-
-    print returns
+    #print returns
 
     corr = getCorrMatrix(returns)
     print corr
-    
+    sys.exit()
     entries = []
 
     # row i, col j (upper triangle only)
