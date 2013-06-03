@@ -15,12 +15,11 @@ function [] = getFutures(ticker, startdate, enddate)
     
     [d] = history(c, ticker, 'VOLUME', startdate, enddate)
     vol = d(:,2);
-    
-    display([settle, vol])
-    vol(1:10)
+
+    date = d(:,1);
     
     % Save to csv to be read by python
-    dlmwrite('blp_data_temp.csv', [settle,vol], 'delimiter', ',', 'precision', 9);
+    dlmwrite(['blp_data_', ticker, 'temp.csv'], flipud([date,settle,vol]), 'delimiter', ',', 'precision', 9);
     
     % Close connection
     close(c);
