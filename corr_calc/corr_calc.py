@@ -86,6 +86,12 @@ def getStockData(symbol, fromDate, toDate):
 
     return (pd, volume, volatility, close, adjclose)
 
+#####
+# Get Data from Bloomberg
+# Notes: Currently only reading from csv files since
+#        this script is not running on Bloomberg terminal
+#####
+
 def getBloombergData(symbol):
     loc = '/media/sf_Dropbox/cross_OS'
 
@@ -121,6 +127,13 @@ def getBloombergData(symbol):
 
     return (pdiff, vlm, vol)
 
+#####
+# getCorrMatrix(returns, write)
+# Description: Calculates correlation matrix of returns data,
+#              filtering out empty rows and writing
+#####
+
+
 def getCorrMatrix(returns, write=False):
 
     # Filter out all tickers with errors
@@ -133,30 +146,34 @@ def getCorrMatrix(returns, write=False):
 
 if __name__ == "__main__":
 
-    e = []
-
     # Parameters
     minVolume = 10000
     minCorr = 0.8
 
+    # Load Tickers from File
     stocks = getSPTicks()
-    ticks = []
-
     etfs = getETFTicks()
-
     bbgfutures = getBBGTicks()
 
     stocks = stocks + etfs
 
+    # Set start, end dates
     d1 = datetime.date(2011,1,1)
     d2 = datetime.date(2011,12,31)
 
+    # Initiate other 
+    ticks = {}
+    ticklist = []
+
+
     # Get the # of entries
     try:
-        obs = getStockData(stocks[0], d1, d2)[0].shape[0]
-        print obs
-        obs = getBloombergData(bbgfutures[0])[0].shape[0]
-        print obs
+        # Note: this is problematic, different goods seem to
+        #       have different numbers of entries
+
+        obs1 = getStockData(stocks[0], d1, d2)[0].shape[0]
+        obs2 = getBloombergData(bbgfutures[0])[0].shape[0]
+        obs = max(obs1, obs2)
     except:
         #print stocks[0]
         print bbgfutures[0]
@@ -165,49 +182,41 @@ if __name__ == "__main__":
     #returns = np.zeros([len(stocks),obs])
     returns = np.zeros([len(bbgfutures) + len(stocks),obs])
     
-    ticks = {}
-    ticklist = []
+    # Get Bloomberg Data (Futures for now)
 
-    #for s in xrange(len(stocks)):
     for s in xrange(len(bbgfutures)):
         
         print "currently getting ", bbgfutures[s]
 
         try:
-            #x = getStockData(stocks[s], d1, d2)
             x = getBloombergData(bbgfutures[s])
         except:
-            print bbgfutures[s], " ERROR"
             # Usual problem: ticker was not live for full year
-            #sys.exit()
-            #print stocks[s], " ERROR"
+            print bbgfutures[s], " ERROR"
             continue
 
 
-        #
         # Filter for volume threshold
-        #
         if x[1] < minVolume:
             continue
 
-        #print stocks[s], '\t', x[1], '\t', x[2]
         print bbgfutures[s], '\t', x[1], '\t', x[2]
 
         try:
             returns[s,:] = 100 * x[0]
         except:
             # Usual problem: ticker was not live for full year
-            #print stocks[s], " MATRIX ERROR"
             print bbgfutures[s], " MATRIX ERROR"
             print x[0].shape, " != obs (", obs, ")"
             returns[s,:obs] = 100 * x[0][:obs]
             continue
 
         # If successful, add to list of ticks that went through
-        #ticks[stocks[s]] = {'volume':x[1], 'volatility':x[2]}
         ticks[bbgfutures[s]] = {'volume':x[1], 'volatility':x[2]}
-        #ticklist.append(stocks[s])
         ticklist.append(bbgfutures[s])
+
+    # Get Data from Yahoo! Finance (stocks, etfs for now)
+
     for s in range(len(stocks)):
 
         try:
@@ -218,9 +227,7 @@ if __name__ == "__main__":
             continue
 
 
-        #
         # Filter for volume threshold
-        #
         if x[1] < minVolume:
             continue
 
@@ -238,25 +245,31 @@ if __name__ == "__main__":
         ticks[stocks[s]] = {'volume':x[1], 'volatility':x[2]}
         ticklist.append(stocks[s])
 
-    #print returns
-
+    # Calculate Correlation Matrix
     corr = getCorrMatrix(returns)
-    print corr
-    sys.exit()
+
+
+    # Grab Correlations above threshold
     entries = []
 
     # row i, col j (upper triangle only)
     for i in xrange(corr.shape[0]):
         for j in xrange(i+1, corr.shape[1]):
+
             if corr[i,j] > minCorr:
                 t1 = ticklist[i]
                 t2 = ticklist[j]
-                entries.append([t1, t2, corr[i,j], ticks[t1]['volume'], ticks[t2]['volume'], ticks[t1]['volatility'], ticks[t2]['volatility']])
 
+                entry = [t1, t2, corr[i,j], ticks[t1]['volume'], ticks[t2]['volume'], ticks[t1]['volatility'], ticks[t2]['volatility']]
+                entries.append(entry)
+
+    # Print Correlations
     print "Correlations above threshold"
     for i in entries:
         print i
             
+
+    # Write final correlation entries into CSV file
     csvout = open('corr_calc.out.csv', 'w')
     writer = csv.writer(csvout)
     writer.writerow(['Ticker1', 'Ticker2', 'Corr', 'Vlm1', 'Vlm2', 'Vol1', 'Vol2'])
@@ -264,5 +277,4 @@ if __name__ == "__main__":
 
     csvout.close()
 
-    print "SUCCESS!"
-    print e
+    print "DONE!"
