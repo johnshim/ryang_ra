@@ -111,20 +111,23 @@ def getBloombergData(symbol):
     for line in f:
         l = line.strip().split(',')
 
-        if l[0] != '0':
-            returns.append(float(l[0]))
-
         if l[1] != '0':
+            settle.append(float(l[0]))
+
+        if l[2] != '0':
             vlm.append(float(l[1]))
 
     f.close()
 
     # Process
-    vlm = sum(vlm) / len(vlm)
-    #print vlm # avg
+    vlm = np.array(vlm)
 
-    returns = np.array(returns)
-    diff = np.diff(returns)
+    settle = np.array(settle)
+
+    vlm = np.dot(vlm, settle) / vlm.shape[0]
+
+
+    diff = np.diff(settle)
 
     pdiff = diff / returns[1:]
 
@@ -155,7 +158,7 @@ if __name__ == "__main__":
     minVolume = 1000000
     minCorr = 0.9
 
-    BBG = False # Run Bloomberg
+    BBG = True # Run Bloomberg
     YHF = True # Run Yahoo Finance
 
     # Load Tickers from File
@@ -182,6 +185,7 @@ if __name__ == "__main__":
         obs1 = getStockData(stocks[0], d1, d2)[0].shape[0]
         obs2 = getBloombergData(bbgfutures[0])[0].shape[0]
         obs = max(obs1, obs2)
+        print obs1, obs2, obs
     except:
         #print stocks[0]
         print bbgfutures[0]
@@ -281,7 +285,7 @@ if __name__ == "__main__":
             
 
     # Write final correlation entries into CSV file
-    csvout = open('corr_calc.out.csv', 'w')
+    csvout = open('Correlations.csv', 'w')
     writer = csv.writer(csvout)
     writer.writerow(['Ticker1', 'Ticker2', 'Corr', 'Vlm1', 'Vlm2', 'Vol1', 'Vol2'])
     writer.writerows(entries)
