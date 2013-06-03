@@ -31,17 +31,6 @@ def getETFTicks():
 
     return tickers
 
-def getFuturesTicks():
-    futures = open('futures.csv', 'r')
-    x = csv.reader(futures)
-
-    tickers = []
-
-    for row in x:
-        tickers.append(row[0])
-
-    return tickers
-
 def getBBGTicks():
     bbg = open('futures_blp_ticksonly.csv', 'r')
     x = csv.reader(bbg)
@@ -96,60 +85,6 @@ def getStockData(symbol, fromDate, toDate):
         volatility = 0
 
     return (pd, volume, volatility, close, adjclose)
-
-#####
-# Get Futures from Quandl
-#####
-
-
-def getQuandlFuturesData(symbol, d1, d2):
-
-    year1 = str(d1.year)
-    if d1.month > 9:
-        month1 = str(d1.month)
-    else:
-        month1 = "0" + str(d1.month)
-    if d1.day > 9:
-        day1 = str(d1.day)
-    else:
-        day1 = "0" + str(d1.day)
-
-    year2 = str(d2.year)
-    if d2.month > 9:
-        month2 = str(d2.month)
-    else:
-        month2 = "0" + str(d2.month)
-    if d2.day > 9:
-        day2 = str(d2.day)
-    else:
-        day2 = "0" + str(d2.day)
-
-    auth = "nJUsp4WDihQVBHDyqbPn"
-    url = "http://www.quandl.com/api/v1/datasets/OFDP/FUTURE_" + symbol + "1.csv?&trim_start=" + year1 + "-" + month1 + "-" + day1 + "&trim_end=" + year2 + "-" + month2 + "-" + day2 + "&sort_order=desc&auth_token=" + auth
-    #print url
-
-    f = urllib2.urlopen(url)
-    head = f.readline().strip().split(",")
-    try:
-        data = np.loadtxt(f, dtype=np.float, delimiter=",", converters={0: pl.datestr2num})
-    except:
-        print symbol, " NOTHING"
-    
-    return data
-
-def getQFuturesData(symbol, d1, d2):
-
-    data = getQuandlFuturesData(symbol, d1, d2)
-    
-    volume = np.mean(data[:,5])
-    settle = data[:,4]
-    
-    diff = np.diff(settle)
-    pd = diff / settle[1:]
-    
-    volatility = np.std(pd)
-
-    return (pd, volume, volatility)
 
 def getBloombergData(symbol):
     loc = '/media/sf_Dropbox/cross_OS'
@@ -209,14 +144,12 @@ if __name__ == "__main__":
 
     etfs = getETFTicks()
 
-    futures = getFuturesTicks()
-
     bbgfutures = getBBGTicks()
 
     stocks = stocks + etfs
 
-    d1 = datetime.date(2010,1,1)
-    d2 = datetime.date(2011,1,1)
+    d1 = datetime.date(2011,1,1)
+    d2 = datetime.date(2011,12,31)
 
     # Get the # of entries
     try:
@@ -230,7 +163,6 @@ if __name__ == "__main__":
     
     print "Ticker \tVolume \tVolatility"
     #returns = np.zeros([len(stocks),obs])
-    #returns = np.zeros([len(futures),obs])
     returns = np.zeros([len(bbgfutures) + len(stocks),obs])
     
     ticks = {}
@@ -245,7 +177,6 @@ if __name__ == "__main__":
             #x = getStockData(stocks[s], d1, d2)
             x = getBloombergData(bbgfutures[s])
         except:
-            #e.append(futures[s])
             print bbgfutures[s], " ERROR"
             # Usual problem: ticker was not live for full year
             #sys.exit()
