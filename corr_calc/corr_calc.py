@@ -5,6 +5,12 @@ import datetime
 import csv
 import sys
 
+#####
+# Functions for grabbing Tickers from file
+# 
+# Currently: S&P500, ETF's, Futures
+#####
+
 def getSPTicks():
     SP = open('SP500.csv', 'r')
     x = csv.reader(SP)
@@ -42,11 +48,10 @@ def getBBGTicks():
 
     return tickers
 
-
-#
+######
 # Begin External Code
 # Source: http://jiripik.me/2012/06/06/python-code-for-getting-market-data-from-finance-yahoo-com/
-#
+######
 
 # prices = data[:,6] or prices = data[:, title.index("Adj Close")], pl.num2date(data[:,1]) back dates
 # syntax http://ichart.yahoo.com/table.csv?s={Yahoo.Symbol.[isin]}&a={Von.M-1}&b={Von.T}&c={Von.J}&d={Bis.M}&e={Bis.T}&f={Bis. J}&g=d&y=0&z=jdsu&ignore=.csv
@@ -57,19 +62,19 @@ def getNumpyHistoricalTimeseries(symbol,fromDate, toDate):
     header = f.readline().strip().split(",")
     return np.loadtxt(f, dtype=np.float, delimiter=",", converters={0: pl.datestr2num})
 
-#
+######
 # End External Code
-#
+######
 
-#####
+######
 # Get Stocks/ETFs from Yahoo Finance
-#####
+######
 
 def getStockData(symbol, fromDate, toDate):
     n = getNumpyHistoricalTimeseries(symbol, fromDate, toDate)
 
     # Average daily volume over this period
-    volume = np.mean(n[:,5])
+    volume = np.mean(np.dot(n[:,5], n[:, 4]))
     close = n[:,4]
     adjclose = n[:,6]
     diff = np.diff(close)
@@ -93,15 +98,15 @@ def getStockData(symbol, fromDate, toDate):
 #####
 
 def getBloombergData(symbol):
-    loc = '/media/sf_Dropbox/cross_OS'
 
+    # load from file
+    loc = '/media/sf_Dropbox/cross_OS'
     f = open(loc + '/Data/blp_data_' + symbol + '.csv')
 
     returns = []
     vlm = []
 
     for line in f:
-        #print line
         l = line.strip().split(',')
 
         if l[0] != '0':
@@ -110,13 +115,11 @@ def getBloombergData(symbol):
         if l[1] != '0':
             vlm.append(float(l[1]))
 
-        #print l
-
     f.close()
 
     # Process
     vlm = sum(vlm) / len(vlm)
-    print vlm # avg
+    #print vlm # avg
 
     returns = np.array(returns)
     diff = np.diff(returns)
