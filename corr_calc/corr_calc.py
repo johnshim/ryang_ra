@@ -101,21 +101,26 @@ def getStockData(symbol, fromDate, toDate):
 
 def getBloombergData(symbol):
 
-    # load from file
-    loc = '/media/sf_Dropbox/cross_OS'
-    f = open(loc + '/Data/blp_data_' + symbol + '.csv')
+    print 'getting ', symbol
 
-    returns = []
+    # load from file
+    loc = '/home/ryang8/budish_ra/corr_calc/'
+    fn = loc + 'Data/blp_data_' + symbol + '.csv'
+    f = open(fn)
+
+    settle = []
     vlm = []
 
     for line in f:
-        l = line.strip().split(',')
 
+        l = line.strip().split(',')
         if l[1] != '0':
-            settle.append(float(l[0]))
+            settle.append(float(l[1]))
+
 
         if l[2] != '0':
-            vlm.append(float(l[1]))
+            vlm.append(float(l[2]))
+
 
     f.close()
 
@@ -124,14 +129,22 @@ def getBloombergData(symbol):
 
     settle = np.array(settle)
 
+    #print settle[0:10]
+
     vlm = np.dot(vlm, settle) / vlm.shape[0]
 
 
     diff = np.diff(settle)
 
-    pdiff = diff / returns[1:]
+    #print diff[0:10]
+
+    pdiff = diff / settle[1:]
+
+    #print pdiff[0:10]
 
     vol = np.std(pdiff)
+
+    #print "data suc"
 
     return (pdiff, vlm, vol)
 
@@ -155,7 +168,7 @@ def getCorrMatrix(returns, write=False):
 if __name__ == "__main__":
 
     # Parameters
-    minVolume = 1000000
+    minVolume = 50000000
     minCorr = 0.9
 
     BBG = True # Run Bloomberg
@@ -183,20 +196,31 @@ if __name__ == "__main__":
         #       have different numbers of entries
 
         obs1 = getStockData(stocks[0], d1, d2)[0].shape[0]
+        print '-', bbgfutures[0]
         obs2 = getBloombergData(bbgfutures[0])[0].shape[0]
+        
+
+        
         obs = max(obs1, obs2)
-        print obs1, obs2, obs
+        #print obs1, obs2, obs
     except:
         #print stocks[0]
         print bbgfutures[0]
+        print obs1
+        print obs2
+        print obs
+        sys.exit()
     
     print "Ticker \tVolume \tVolatility"
     #returns = np.zeros([len(stocks),obs])
     returns = np.zeros([len(bbgfutures) + len(stocks),obs])
     
+    prev = 0
+
+
     if BBG:
         # Get Bloomberg Data (Futures for now)
-
+        #bbgfutures = ['ES1 Index']
         for s in xrange(len(bbgfutures)):
 
             print "currently getting ", bbgfutures[s]
@@ -216,22 +240,23 @@ if __name__ == "__main__":
             print bbgfutures[s], '\t', x[1], '\t', x[2]
 
             try:
-                returns[s,:] = 100 * x[0]
+                returns[s,:] = x[0]
             except:
                 # Usual problem: ticker was not live for full year
                 print bbgfutures[s], " MATRIX ERROR"
                 print x[0].shape, " != obs (", obs, ")"
-                returns[s,:obs] = 100 * x[0][:obs]
+                #returns[s,:obs] = x[0][:obs]
                 continue
 
             # If successful, add to list of ticks that went through
             ticks[bbgfutures[s]] = {'volume':x[1], 'volatility':x[2]}
             ticklist.append(bbgfutures[s])
-
+        prev = len(bbgfutures)
 
 
     if YHF:
         # Get Data from Yahoo! Finance (stocks, etfs for now)
+        #stocks = ['SPY']
         for s in range(len(stocks)):
 
             try:
@@ -249,7 +274,7 @@ if __name__ == "__main__":
             print stocks[s], '\t', x[1], '\t', x[2]
 
             try:
-                returns[s,:] = 100 * x[0]
+                returns[prev + s,:] = x[0]
             except:
                 # Usual problem: ticker was not live for full year
                 print stocks[s], " MATRIX ERROR"
@@ -260,9 +285,17 @@ if __name__ == "__main__":
             ticks[stocks[s]] = {'volume':x[1], 'volatility':x[2]}
             ticklist.append(stocks[s])
 
+    #print returns
+
     # Calculate Correlation Matrix
     corr = getCorrMatrix(returns)
-
+    # try ES-SPY correlation
+    est = ticklist.index('ES1 Index')
+    spyt = ticklist.index('SPY')
+    print corr[est,spyt]
+    #print corr
+    
+    print corr.shape[0], ' and ', corr.shape[1], ' vs ', len(ticklist)
 
     # Grab Correlations above threshold
     entries = []
