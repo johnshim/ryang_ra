@@ -74,7 +74,9 @@ def getStockData(symbol, fromDate, toDate):
     n = getNumpyHistoricalTimeseries(symbol, fromDate, toDate)
 
     # Average daily volume over this period
-    volume = np.mean(np.dot(n[:,5], n[:, 4]))
+    volume = np.dot(n[:,5], n[:, 4]) / n[:,5].shape[0]
+
+    # Daily Percentage Returns
     close = n[:,4]
     adjclose = n[:,6]
     diff = np.diff(close)
@@ -150,8 +152,11 @@ def getCorrMatrix(returns, write=False):
 if __name__ == "__main__":
 
     # Parameters
-    minVolume = 10000
-    minCorr = 0.8
+    minVolume = 1000000
+    minCorr = 0.9
+
+    BBG = False # Run Bloomberg
+    YHF = True # Run Yahoo Finance
 
     # Load Tickers from File
     stocks = getSPTicks()
@@ -185,68 +190,71 @@ if __name__ == "__main__":
     #returns = np.zeros([len(stocks),obs])
     returns = np.zeros([len(bbgfutures) + len(stocks),obs])
     
-    # Get Bloomberg Data (Futures for now)
+    if BBG:
+        # Get Bloomberg Data (Futures for now)
 
-    for s in xrange(len(bbgfutures)):
-        
-        print "currently getting ", bbgfutures[s]
+        for s in xrange(len(bbgfutures)):
 
-        try:
-            x = getBloombergData(bbgfutures[s])
-        except:
-            # Usual problem: ticker was not live for full year
-            print bbgfutures[s], " ERROR"
-            continue
+            print "currently getting ", bbgfutures[s]
 
-
-        # Filter for volume threshold
-        if x[1] < minVolume:
-            continue
-
-        print bbgfutures[s], '\t', x[1], '\t', x[2]
-
-        try:
-            returns[s,:] = 100 * x[0]
-        except:
-            # Usual problem: ticker was not live for full year
-            print bbgfutures[s], " MATRIX ERROR"
-            print x[0].shape, " != obs (", obs, ")"
-            returns[s,:obs] = 100 * x[0][:obs]
-            continue
-
-        # If successful, add to list of ticks that went through
-        ticks[bbgfutures[s]] = {'volume':x[1], 'volatility':x[2]}
-        ticklist.append(bbgfutures[s])
-
-    # Get Data from Yahoo! Finance (stocks, etfs for now)
-
-    for s in range(len(stocks)):
-
-        try:
-            x = getStockData(stocks[s], d1, d2)
-        except:
-            # Usual problem: ticker was not live for full year
-            print stocks[s], " ERROR"
-            continue
+            try:
+                x = getBloombergData(bbgfutures[s])
+            except:
+                # Usual problem: ticker was not live for full year
+                print bbgfutures[s], " ERROR"
+                continue
 
 
-        # Filter for volume threshold
-        if x[1] < minVolume:
-            continue
+            # Filter for volume threshold
+            if x[1] < minVolume:
+                continue
 
-        print stocks[s], '\t', x[1], '\t', x[2]
+            print bbgfutures[s], '\t', x[1], '\t', x[2]
 
-        try:
-            returns[s,:] = 100 * x[0]
-        except:
-            # Usual problem: ticker was not live for full year
-            print stocks[s], " MATRIX ERROR"
-            print x[0].shape, " != obs (", obs, ")"
-            continue
+            try:
+                returns[s,:] = 100 * x[0]
+            except:
+                # Usual problem: ticker was not live for full year
+                print bbgfutures[s], " MATRIX ERROR"
+                print x[0].shape, " != obs (", obs, ")"
+                returns[s,:obs] = 100 * x[0][:obs]
+                continue
 
-        # If successful, add to list of ticks that went through
-        ticks[stocks[s]] = {'volume':x[1], 'volatility':x[2]}
-        ticklist.append(stocks[s])
+            # If successful, add to list of ticks that went through
+            ticks[bbgfutures[s]] = {'volume':x[1], 'volatility':x[2]}
+            ticklist.append(bbgfutures[s])
+
+
+
+    if YHF:
+        # Get Data from Yahoo! Finance (stocks, etfs for now)
+        for s in range(len(stocks)):
+
+            try:
+                x = getStockData(stocks[s], d1, d2)
+            except:
+                # Usual problem: ticker was not live for full year
+                print stocks[s], " ERROR"
+                continue
+
+
+            # Filter for volume threshold
+            if x[1] < minVolume:
+                continue
+
+            print stocks[s], '\t', x[1], '\t', x[2]
+
+            try:
+                returns[s,:] = 100 * x[0]
+            except:
+                # Usual problem: ticker was not live for full year
+                print stocks[s], " MATRIX ERROR"
+                print x[0].shape, " != obs (", obs, ")"
+                continue
+
+            # If successful, add to list of ticks that went through
+            ticks[stocks[s]] = {'volume':x[1], 'volatility':x[2]}
+            ticklist.append(stocks[s])
 
     # Calculate Correlation Matrix
     corr = getCorrMatrix(returns)
