@@ -16,26 +16,30 @@ def getSPTicks():
     x = csv.reader(SP)
 
     tickers = []
+    desc = []
 
     for row in x:
         try:
             assert row[2] != 'Constituent Symbol'
             tickers.append(row[2].replace(" ",""))
+            desc.append(row[1])
         except:
             continue
 
-    return tickers
+    return [tickers, desc]
 
 def getETFTicks():
     ETF = open('etf.csv', 'r')
     x = csv.reader(ETF)
 
     tickers = []
+    desc = []
 
     for row in x:
         tickers.append(row[0])
+        desc.append(row[1])
 
-    return tickers
+    return [tickers, desc]
 
 def getBBGTicks():
     bbg = open('futures_blp_ticksonly.csv', 'r')
@@ -129,22 +133,14 @@ def getBloombergData(symbol):
 
     settle = np.array(settle)
 
-    #print settle[0:10]
-
     vlm = np.dot(vlm, settle) / vlm.shape[0]
 
 
     diff = np.diff(settle)
 
-    #print diff[0:10]
-
     pdiff = diff / settle[1:]
 
-    #print pdiff[0:10]
-
     vol = np.std(pdiff)
-
-    #print "data suc"
 
     return (pdiff, vlm, vol)
 
@@ -175,10 +171,23 @@ if __name__ == "__main__":
     YHF = True # Run Yahoo Finance
 
     # Load Tickers from File
-    stocks = getSPTicks()
-    etfs = getETFTicks()
+    x = getSPTicks()
+    stocks = x[0]
+    stockdesc = {}
+    for i in xrange(len(stocks)):
+        stockdesc[x[0][i]] = x[1][i]
+
+    x = getETFTicks()
+    etfs = x[0]
+    etfdesc = {}
+
+    for i in xrange(len(etfs)):
+        etfdesc[x[0][i]] = x[1][i]
+
     bbgfutures = getBBGTicks()
 
+    print type(stocks)
+    print type(etfs)
     stocks = stocks + etfs
 
     # Set start, end dates
