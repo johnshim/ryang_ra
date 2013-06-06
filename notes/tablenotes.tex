@@ -13,12 +13,21 @@
 
 \maketitle
 
-\subsubsection{Goal}
+\section{Goal}
 Examine the set of highly correlated pairs of securities, among equities, ETFs, and futures.
 
-\subsubsection{Data Selection}
+\section{Data Selection}
 
-\paragraph{Data Source and Collection}
+\paragraph{Time Period:} We chose to use the time period 1/1/2011 - 12/31/2011 for this report.
+
+\paragraph{Equities:} We used the list of companies currently listed in the S\&P 500. Note that since we are using historical data more than a year old, there are companies which did not trade during the time period we are looking at. For example, AbbVie (ABBV) was recently spun off from Abbott (ABT), and does not appear in the historica data we examine. For these, and all securities which did not report prices and volumes on all trading days in 1/1/2011 - 12/31/2011, we drop from our dataset.
+
+\paragraph{ETFs:} We used a list of the 100 largest ETFs by trading volume, as reported on \url{http://etfdb.com/compare/volume/}.
+
+\paragraph{Futures:}
+
+
+\section{Data Source and Collection}
 \paragraph{}
 I used two primary data resources: Yahoo! Finance and Bloomberg. 
 
@@ -28,10 +37,10 @@ From Yahoo! Finance, I acquired historical prices and volumes for the equities a
 \paragraph{}
 From Bloomberg Terminal, I acquired historical prices, volumes, and contract sizes for  futures. Data from Bloomberg was obtained by making Bloomberg API requests through the MATLAB Datafeed Toolbox \texttt{history} and \texttt{getdata} functions.
 
-\subsubsection{Data Processing and Computations}
+\section{Data Processing and Computations}
 
 \paragraph{}
-From above, for each asset in the trading days in between 2011/1/1 and 2011/12/31, we had daily close prices and daily trading volume.
+From above, for each asset in the trading days, we had daily close prices and daily trading volume.
 
 \paragraph{}
 To calculate the average daily \textbf{weighted volume} for \textit{equities} and \textit{ETFs}, we first multiplied each day's volume with that day's trading volume, and then took the mean of these daily values. For \textit{futures}, we multiplied the value computed above by the contract size of the future.
@@ -48,6 +57,9 @@ To compute the correlation between different assets, we first filter out all ass
 \paragraph{}
 After computing the correlation coefficient matrix, we set a minimum correlation threshold (in our current example, 0.9) and reported all entries in the correlation coefficient matrix with correlation greater than our minimum correlation threshold, with their corresponding tickers, average daily weighted volumes, and volatility values.
 
-\paragraph{Code} All of the code used to acquire the data and perform these computations is public at \url{https://github.com/rnyang/budish_ra} under the \texttt{corr\_calc} folder.
+\section{Code}
+
+\paragraph{}
+All of the code used to acquire the data and perform these computations is public at \url{https://github.com/rnyang/budish_ra} under the \texttt{corr\_calc} folder.
 
 \end{document}
