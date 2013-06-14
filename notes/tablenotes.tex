@@ -20,22 +20,22 @@ Examine the set of highly correlated pairs of securities, among equities, ETFs, 
 
 \paragraph{Time Period:} We chose to use the time period 1/1/2011 - 12/31/2011 for this report.
 
-\paragraph{Equities:} We used the list of companies currently listed in the S\&P 500. Note that since we are using historical data more than a year old, there are companies which did not trade during the time period we are looking at. For example, AbbVie (ABBV) was recently spun off from Abbott (ABT), and does not appear in the historica data we examine. For these, and all securities which did not report prices and volumes on all trading days in 1/1/2011 - 12/31/2011, we drop from our dataset.
+\paragraph{Equities:} We used the list of companies listed in the S\&P 500 on May 17th, 2013. Note that since we are using historical data more than a year old, there are companies which did not trade during the time period we are looking at. For example, AbbVie (ABBV) was recently spun off from Abbott (ABT), and does not appear in the historica data we examine. For these, and all securities which did not report prices and volumes on all trading days in 1/1/2011 - 12/31/2011, we drop from our dataset.
 
 \paragraph{ETFs:} We used a list of the 100 largest ETFs by trading volume, as reported on \url{http://etfdb.com/compare/volume/}.
 
-\paragraph{Futures:}
+\paragraph{Futures:} We used 
 
 
 \section{Data Source and Collection}
 \paragraph{}
-I used two primary data resources: Yahoo! Finance and Bloomberg. 
+We used two primary data resources: Yahoo! Finance and Bloomberg. 
 
 \paragraph{}
-From Yahoo! Finance, I acquired historical prices and volumes for the equities and ETFs. Data from Yahoo! Finance was obtained by making requesting csv requests via the Yahoo! Finance API, with the \texttt{urllib2} python library.
+From Yahoo! Finance, we acquired historical prices and volumes for the equities and ETFs. Data from Yahoo! Finance was obtained by making requesting csv requests via the Yahoo! Finance API, with the \texttt{urllib2} python library.
 
 \paragraph{}
-From Bloomberg Terminal, I acquired historical prices, volumes, and contract sizes for  futures. Data from Bloomberg was obtained by making Bloomberg API requests through the MATLAB Datafeed Toolbox \texttt{history} and \texttt{getdata} functions.
+From Bloomberg Terminal, we acquired historical prices, volumes, and contract sizes for  futures. Data from Bloomberg was obtained by making Bloomberg API requests through the MATLAB Datafeed Toolbox \texttt{history} and \texttt{getdata} functions.
 
 \section{Data Processing and Computations}
 

@@ -46,11 +46,13 @@ def getBBGTicks():
     x = csv.reader(bbg)
 
     tickers = []
+    desc = []
 
     for row in x:
         tickers.append(row[0])
+        desc.append(row[1])
 
-    return tickers
+    return [tickers, desc]
 
 ######
 # Begin External Code
@@ -133,6 +135,8 @@ def getBloombergData(symbol):
 
     settle = np.array(settle)
 
+    # Multiply by price, average over days
+    # vlm already scaled by nominal values
     vlm = np.dot(vlm, settle) / vlm.shape[0]
 
 
@@ -161,13 +165,20 @@ def getCorrMatrix(returns, write=False):
 
     return np.corrcoef(returns)
 
+#####
+# MAIN FUNCTION
+#
+#
+#####
+
+
 if __name__ == "__main__":
 
     # Parameters
     minVolume = 50000000
     minCorr = 0.9
 
-    BBG = True # Run Bloomberg
+    BBG = False # Run Bloomberg
     YHF = True # Run Yahoo Finance
 
     # Load Tickers from File
@@ -184,12 +195,19 @@ if __name__ == "__main__":
     for i in xrange(len(etfs)):
         etfdesc[x[0][i]] = x[1][i]
 
-    bbgfutures = getBBGTicks()
+    x = getBBGTicks()
+    bbgfutures = x[0]
+    futuresdesc = {}
+
+    for i in xrange(len(bbgfutures)):
+        futuresdesc[x[0][i]] = x[1][i]
 
     print type(stocks)
     print type(etfs)
     stocks = stocks + etfs
 
+    stocks = ["SPY"]
+    
     # Set start, end dates
     d1 = datetime.date(2011,1,1)
     d2 = datetime.date(2011,12,31)
@@ -207,7 +225,7 @@ if __name__ == "__main__":
         obs1 = getStockData(stocks[0], d1, d2)[0].shape[0]
         print '-', bbgfutures[0]
         obs2 = getBloombergData(bbgfutures[0])[0].shape[0]
-        
+        #obs2 = 10
 
         
         obs = max(obs1, obs2)
@@ -295,7 +313,7 @@ if __name__ == "__main__":
             ticklist.append(stocks[s])
 
     #print returns
-
+    print ticks
     # Calculate Correlation Matrix
     corr = getCorrMatrix(returns)
     # try ES-SPY correlation
@@ -317,7 +335,25 @@ if __name__ == "__main__":
                 t1 = ticklist[i]
                 t2 = ticklist[j]
 
-                entry = [t1, t2, corr[i,j], ticks[t1]['volume'], ticks[t2]['volume'], ticks[t1]['volatility'], ticks[t2]['volatility']]
+                # Get longer Descriptions
+                try:
+                    desc1 = stockdesc[t1]
+                except:
+                    try:
+                        desc1 = etfdesc[t1]
+                    except:
+                        desc1 = futuresdesc[t1]
+
+                try:
+                    desc2 = stockdesc[t2]
+                except:
+                    try:
+                        desc2 = etfdesc[t2]
+                    except:
+                        desc2 = futuresdesc[t2]
+
+
+                entry = [t1, desc1, t2, desc2, corr[i,j], ticks[t1]['volume'], ticks[t2]['volume'], ticks[t1]['volatility'], ticks[t2]['volatility']]
                 entries.append(entry)
 
     # Print Correlations
