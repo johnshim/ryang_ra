@@ -19,36 +19,36 @@ using namespace std;
 
 
 template <typename RealType = double>
-  class beta_distribution
+class beta_distribution
 {
 public:
   typedef RealType result_type;
 
-      class param_type
-      {
-      public:
-	typedef beta_distribution distribution_type;
+  class param_type
+  {
+  public:
+    typedef beta_distribution distribution_type;
 
-	explicit param_type(RealType a = 2.0, RealType b = 2.0)
-	  : a_param(a), b_param(b) { }
+    explicit param_type(RealType a = 2.0, RealType b = 2.0)
+      : a_param(a), b_param(b) { }
 
-	RealType a() const { return a_param; }
-	RealType b() const { return b_param; }
+    RealType a() const { return a_param; }
+    RealType b() const { return b_param; }
 
-	bool operator==(const param_type& other) const
-	{
-	  return (a_param == other.a_param &&
-		  b_param == other.b_param);
-	}
+    bool operator==(const param_type& other) const
+    {
+      return (a_param == other.a_param &&
+	      b_param == other.b_param);
+    }
 
-	bool operator!=(const param_type& other) const
-	{
-	  return !(*this == other);
-	}
+    bool operator!=(const param_type& other) const
+    {
+      return !(*this == other);
+    }
 
-      private:
-	RealType a_param, b_param;
-      };
+  private:
+    RealType a_param, b_param;
+  };
 
   explicit beta_distribution(RealType a = 2.0, RealType b = 2.0)
     : a_gamma(a), b_gamma(b) { }
@@ -91,7 +91,7 @@ public:
   bool operator==(const beta_distribution<result_type>& other) const
   {
     return (param() == other.param() &&
-                a_gamma == other.a_gamma &&
+	    a_gamma == other.a_gamma &&
 	    b_gamma == other.b_gamma);
   }
 
@@ -144,7 +144,7 @@ std::basic_istream<CharT>& operator>>(std::basic_istream<CharT>& is,
  *
  */
 
-int test(int n, string dist){
+double test(int n, string dist, vector<double> bidparams, vector<double> askparams){
 
   // generate random numbers
   random_device rd;
@@ -153,8 +153,8 @@ int test(int n, string dist){
   normal_distribution<double> distbid_normal(78600, 10000);
   normal_distribution<double> distask_normal(78505, 10000);
   
-  beta_distribution<double> distbid_beta(3,5);
-  beta_distribution<double> distask_beta(3,5);
+  beta_distribution<double> distbid_beta(bidparams[0],bidparams[1]);
+  beta_distribution<double> distask_beta(askparams[0],askparams[1]);
   
 
   vector<int> bids;
@@ -168,8 +168,8 @@ int test(int n, string dist){
   }
   else if (dist == "BETA"){
     for (int i = 0; i < n; i++){
-      bids.push_back(775 + floor(60 * distbid_beta(gen)));
-      asks.push_back(800 - floor(60 * distask_beta(gen)));		    
+      asks.push_back(775 + floor(60 * distask_beta(gen)));
+      bids.push_back(800 - floor(60 * distbid_beta(gen)));		    
     }
   }
 
@@ -307,27 +307,56 @@ int test(int n, string dist){
   else{
     tempCLEAR.tv_sec = t2.tv_sec-t1.tv_sec;    
   }
-
-  cout<<"Total Time: "<<temp.tv_sec<<"s \t \t : \t "<<temp.tv_nsec / 1000000.0<<"ms"<<endl;
-  cout<<"Aggregation Time: "<<tempAGG2.tv_sec<<"s \t : \t "<<tempAGG2.tv_nsec / 1000000.0<<"ms"<<endl;
-  cout<<"Clearing Time: "<<tempCLEAR.tv_sec<<"s \t : \t "<<tempCLEAR.tv_nsec / 1000000.0<<"ms"<<endl;
-  //cout << "maxbid:\t"<<maxbid<<"\t minask:\t"<<minask<<endl;
-  cout <<"Market Clearing Price: "<< guess << endl;
-  cout << "Demand: " << demand << "\t Supply: "<<supply << endl;
-  cout << endl << endl;
-
-  return tempCLEAR.tv_nsec / 1000000.0;
+  /*
+    cout<<"Total Time: "<<temp.tv_sec<<"s \t \t : \t "<<temp.tv_nsec / 1000000.0<<"ms"<<endl;
+    cout<<"Aggregation Time: "<<tempAGG2.tv_sec<<"s \t : \t "<<tempAGG2.tv_nsec / 1000000.0<<"ms"<<endl;
+    cout<<"Clearing Time: "<<tempCLEAR.tv_sec<<"s \t : \t "<<tempCLEAR.tv_nsec / 1000000.0<<"ms"<<endl;
+    //cout << "maxbid:\t"<<maxbid<<"\t minask:\t"<<minask<<endl;
+    cout <<"Market Clearing Price: "<< guess << endl;
+    cout <<"Crosses: " << minask << "\t" << maxbid << endl;
+    cout << "Demand: " << demand << "\t Supply: "<<supply << endl;
+    cout << endl << endl;
+  */
+  return (double(tempCLEAR.tv_sec) + double(tempCLEAR.tv_nsec) / 1000000.0);
 }
 
 int main(){
   //double sum = 0;
-  
-  for (int i = 1; i < 7; i++){
-    cout << "M = " << pow(10,i) << endl;
-    //test(pow(10,i),"NORMAL");
-    test(pow(10,i),"BETA");
+  double time = 0;
+  double max = 0;
+
+  int t = 6;
+
+  int maxi, maxj, maxd;
+
+  for (int d = 40; d <= 80; d += 5){
+    for (int i = 1; i <= 50; i+=5){
+      for (int j = 1; j <= 50; j+=5){
+
+	cout << "IJ:\t" << i << ", " << j << endl;
+
+	vector<double> bp, ap;
+	bp.push_back(double(i)/10);
+	bp.push_back(double(j)/10);
+	ap.push_back(double(i)/10);
+	ap.push_back(double(j)/10);
+ 
+
+	//for (int i = 1; i < 7; i++){
+	//cout << "M = " << pow(10,i) << endl;
+	//test(pow(10,i),"NORMAL");
+	time = test(pow(10,t),"BETA",bp,ap);
+	if (time > max){
+	  cout << "NEWMAX:\t" << time << endl;
+	  max = time;
+	  maxi = i;
+	  maxj = j;
+	  maxd = d;
+	}
+      }
+    }
   }
   
-
+  cout << "MAX: \t " << max << "\t" << maxi << "\t" << maxj << "\t" << maxd << endl;
   //test(pow(10,5));
 }
