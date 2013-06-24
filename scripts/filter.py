@@ -15,7 +15,7 @@ DATA_FOLDER = "/media/sf_Dropbox/Work/budish_ra/data/"
 DATE = dt.date(2011,10,17) 
 
 START_TIME = dt.time(13, 59, 59, 999999) # 8:30am = 1430 GMT
-END_TIME = dt.time(17, 00, 00, 1) # 3pm = 2000 GM
+END_TIME = dt.time(20, 00, 00, 1) # 3pm = 2000 GMT
 #END_TIME = dt.time(19, 00, 05, 1) # 2pm = 1900 GMT = 1400 EST
 
 NAME = "1"
@@ -54,13 +54,8 @@ class TradeTable(tables.IsDescription):
 
 ############################
 ############################
-"""
-def tests():
-    fail = 0
 
-    if not fail:
-        print "ALL TESTS PASSED"
-"""
+
 def to_ts(ts):
     return dt.datetime.fromtimestamp(float(ts)/1000000)
 

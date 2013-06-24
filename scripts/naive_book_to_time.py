@@ -49,12 +49,15 @@ def book2time(filename):
     sourcedata = tables.openFile(filename)
     output = tables.openFile(filename + "_timespace", 'w')
 
+    # Extract the relevant timestamps
+
     times1000 = sourcedata.root.ES.books.cols.timestamp[:]
     times = times1000 / 1000
     print times[0], times[-1]
 
     books = sourcedata.root.ES.books
 
+    # total number of milliseconds
     total_interval = times[-1] - times[0]
     print total_interval
 
@@ -100,6 +103,8 @@ def book2time(filename):
     # Cleaning Up
     sourcedata.close()
     output.close()
+
+    return timemidpts
     
 
 if __name__ == "__main__":

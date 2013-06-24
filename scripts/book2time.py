@@ -3,6 +3,8 @@
 
 from functools import partial
 
+from naive_book_to_time import book2time
+
 import tables
 import numpy
 import datetime as dt
@@ -195,8 +197,8 @@ def get_midpts(ti, books, times):
     return midpt
 
 if __name__ == "__main__":
-    ti = TimeIndexFinder(DATA_FOLDER + FILE)
-    ti2 = TimeIndexFinder(DATA_FOLDER + FILE)
+    #ti = TimeIndexFinder(DATA_FOLDER + FILE)
+    #ti2 = TimeIndexFinder(DATA_FOLDER + FILE)
     """
     i = time.time()
     for x in xrange(100):
@@ -216,35 +218,69 @@ if __name__ == "__main__":
 
     t = time.time()
 
+    # Opening files (for both read and write)
+
     f = tables.openFile(DATA_FOLDER + FILE)
     f2 = tables.openFile(DATA_FOLDER + FILE + 'prices', mode='w', title = 'prices')
     f3 = tables.openFile(DATA_FOLDER + FILE + 'pdiff', mode='w', title = 'prices')
 
+    # Extract the order books from hdf5
+
     books = f.root.ES.books
+
+    # Get start and stop times
 
     init = books.cols.timestamp[0]
     end = books.cols.timestamp[-1]
 
+    # times is a list of all the individual milliseconds (the timestamps are in 1/1000 of ms)
+    # uno is just the first quarter of the observations
+
     times = xrange(init, end, 1000)
     uno = xrange(init, init + (end - init)/4, 1000)
-    dos = xrange(init + (end-init)/2, end, 1000)
+    uno = xrange(init, end, 1000)
+    #dos = xrange(init + (end-init)/2, end, 1000)
 
-    m = get_midpts(ti, books, uno)
+
+    #####
+
+    # NAIVE BOOK TO TIME
+
+    #####
+
+    m = book2time(DATA_FOLDER + FILE)
+
+    
+
+    #####
+
+
+    # Calculate midpoint prices (so far just for first quarter)
+
+    #m = get_midpts(ti, books, uno)
 
     print "reading done in ", (time.time() - t) / 60.
     t = time.time()
+
+    # Write the midpoints to file
 
     f2.createArray(f2.root, "test", m)
 
     print "writing done in ", (time.time() - t) / 60.
     t = time.time()
+
+    # Calculate difference of averages over given interval
+
     interval = 10
 
     pd = np.zeros(len(m) - 2 * interval - 1)
     pd[0] = sum(m[interval:2*interval - 1]) - sum(m[0:interval-1])
 
     for i in xrange(1, len(pd)):
+        # cheesy cheat, not sure if actually saves time?
         pd[i] = pd[i-1] + m[i-1] - 2*m[i+interval-1] + m[i+2*interval-1]
+
+    # Write averages to file
 
     f3.createArray(f3.root, "pdiff", pd)
 
