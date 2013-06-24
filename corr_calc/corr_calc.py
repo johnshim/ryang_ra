@@ -6,6 +6,28 @@ import csv
 import sys
 
 #####
+# CONTROLS
+#####
+
+
+BBG = False # Run Bloomberg
+YHF = True # Run Yahoo Finance (S&P 500, ETFs)
+
+# Parameters
+minVolume = 50000000
+minCorr = 0.9
+    
+#####
+#####
+
+
+
+
+
+
+
+
+#####
 # Functions for grabbing Tickers from file
 # 
 # Currently: S&P500, ETF's, Futures
@@ -174,12 +196,7 @@ def getCorrMatrix(returns, write=False):
 
 if __name__ == "__main__":
 
-    # Parameters
-    minVolume = 50000000
-    minCorr = 0.9
 
-    BBG = False # Run Bloomberg
-    YHF = True # Run Yahoo Finance
 
     # Load Tickers from File
     x = getSPTicks()
@@ -206,7 +223,7 @@ if __name__ == "__main__":
     print type(etfs)
     stocks = stocks + etfs
 
-    stocks = ["SPY"]
+    #stocks = ["SPY"]
     
     # Set start, end dates
     d1 = datetime.date(2011,1,1)
@@ -222,13 +239,23 @@ if __name__ == "__main__":
         # Note: this is problematic, different goods seem to
         #       have different numbers of entries
 
-        obs1 = getStockData(stocks[0], d1, d2)[0].shape[0]
-        print '-', bbgfutures[0]
-        obs2 = getBloombergData(bbgfutures[0])[0].shape[0]
+        if YHF:
+            obs1 = getStockData(stocks[0], d1, d2)[0].shape[0]
+
+        if BBG:
+            print '-', bbgfutures[0]
+            obs2 = getBloombergData(bbgfutures[0])[0].shape[0]
         #obs2 = 10
 
-        
-        obs = max(obs1, obs2)
+        if YHF:
+            obs = obs1
+        if BBG:
+            obs = obs2
+        if YHF and BBG:
+            obs = max(obs1, obs2)
+
+        print "OBS: ", obs
+
         #print obs1, obs2, obs
     except:
         #print stocks[0]
@@ -317,9 +344,9 @@ if __name__ == "__main__":
     # Calculate Correlation Matrix
     corr = getCorrMatrix(returns)
     # try ES-SPY correlation
-    est = ticklist.index('ES1 Index')
-    spyt = ticklist.index('SPY')
-    print corr[est,spyt]
+    #est = ticklist.index('ES1 Index')
+    #spyt = ticklist.index('SPY')
+    #print corr[est,spyt]
     #print corr
     
     print corr.shape[0], ' and ', corr.shape[1], ' vs ', len(ticklist)
