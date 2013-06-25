@@ -62,28 +62,8 @@ class TradeTable(tables.IsDescription):
 ############################
 
 
-
-
-if __name__ == "__main__":
-    #ti = TimeIndexFinder(DATA_FOLDER + FILE)
-    #ti2 = TimeIndexFinder(DATA_FOLDER + FILE)
-    """
-    i = time.time()
-    for x in xrange(100):
-        ti.get_index(1318886012570000)
-        ti.get_index(1318886012570000 + x * 1000)
-
-    print time.time() - i
-
-    i = time.time()
-
-    for x in xrange(100):
-        ti.get_index_original(1318886012570000)
-        ti.get_index_original(1318886012570000 + x * 1000)
-
-    print time.time() - i
-    """
-
+def getDifferenceArray(symbol):
+    
     t = time.time()
 
     # Opening files (for both read and write)
@@ -94,21 +74,12 @@ if __name__ == "__main__":
 
     # Extract the order books from hdf5
 
-    books = f.root.ES.books
+    books = getattr(f.root, symbol).books
 
     # Get start and stop times
 
     init = books.cols.timestamp[0]
     end = books.cols.timestamp[-1]
-
-    # times is a list of all the individual milliseconds (the timestamps are in 1/1000 of ms)
-    # uno is just the first quarter of the observations
-
-    times = xrange(init, end, 1000)
-    uno = xrange(init, init + (end - init)/4, 1000)
-    uno = xrange(init, end, 1000)
-    #dos = xrange(init + (end-init)/2, end, 1000)
-
 
     #####
 
@@ -116,16 +87,16 @@ if __name__ == "__main__":
 
     #####
 
+
+    # M is numpy array
+    # (i,1) is midpt price at time offset + i
+    # (i,2) is timestamp at time offset + i
+
     m = book2time(DATA_FOLDER + FILE)
 
-    
 
     #####
 
-
-    # Calculate midpoint prices (so far just for first quarter)
-
-    #m = get_midpts(ti, books, uno)
 
     print "reading done in ", (time.time() - t) / 60.
     t = time.time()
@@ -158,6 +129,13 @@ if __name__ == "__main__":
     f2.close()
     f3.close()
 
+    return pd
+
+
+if __name__ == "__main__":
+
+    getDifferenceArray('ES')
+
     # DO WITH NUMPY ARRAY
 
     #print len(uno), len(dos), len(end - init)
@@ -175,6 +153,3 @@ if __name__ == "__main__":
     #total = m[0] + m[1]
     #print len(total)
     #print end - init
-    print "done"
-    sys.exit()
-
