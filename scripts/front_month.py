@@ -1,32 +1,32 @@
 # front_month.py
-# Given a date and contract, gets the front month contract for that date
+# Given a date and contract, gets the CME-style front month contract for that date
+# Note that this is calculated for contracts that deliver in Mar/Jun/Sep/Dec
 
 import datetime as dt
 from math import ceil
 
-CONTRACT = "ES"
 MONTH_CODES = {3:"H", 6:"M", 9:"U", 12:"Z"}
 
 def tests():
     fail = 0
 
     d = dt.date(2013,3,7)
-    if get_front_month(d) != "ESH3":
+    if get_front_month(d, "ES") != "ESH3":
         print "FAILED #1"
         fail += 1
 
     d = dt.date(2013,3,14)
-    if get_front_month(d) != "ESM3":
+    if get_front_month(d, "ES") != "ESM3":
         print "FAILED #2"
         fail += 1
 
     d = dt.date(2013,3,22)
-    if get_front_month(d) != "ESM3":
+    if get_front_month(d, "ES") != "ESM3":
         print "FAILED #3"
         fail += 1
 
     d = dt.date(2012,2,20)
-    if get_front_month(d) != "ESH2":
+    if get_front_month(d, "ES") != "ESH2":
         print "FAILED #4"
         fail += 1
 
@@ -50,7 +50,7 @@ def get_expiration_date(date):
         
     return second_thursday
     
-def get_front_month(date):
+def get_front_month(date, contract):
     
     # Grab month + year
     month = date.month
@@ -66,19 +66,19 @@ def get_front_month(date):
         second_thursday = get_expiration_date(date)
 
         if day < second_thursday.day:
-            curr = CONTRACT + str(MONTH_CODES[second_thursday.month]) + str(second_thursday.year)[-1]
+            curr = contract + str(MONTH_CODES[second_thursday.month]) + str(second_thursday.year)[-1]
             return curr
         else:
             try:
-                curr = CONTRACT + str(MONTH_CODES[second_thursday.month + 3]) + str(second_thursday.year)[-1]
+                curr = contract + str(MONTH_CODES[second_thursday.month + 3]) + str(second_thursday.year)[-1]
             except KeyError: # December - rollover to next year
-                curr = CONTRACT + str(MONTH_CODES[3]) + str(second_thursday.year + 1)[-1]   
+                curr = contract + str(MONTH_CODES[3]) + str(second_thursday.year + 1)[-1]   
             return curr
 
     elif month not in MONTH_CODES.keys():
         # get next month
         next_month = ceil(float(month) / 3) * 3
-        curr = CONTRACT + str(MONTH_CODES[next_month]) + str(year)[-1]
+        curr = contract + str(MONTH_CODES[next_month]) + str(year)[-1]
         return curr
 
 if __name__ == '__main__':

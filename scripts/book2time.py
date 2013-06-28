@@ -1,25 +1,15 @@
 # book2time.py
 # Converts records in book update space to time space
 
-from functools import partial
-
 from naive_book_to_time import book2time
 
 import tables
 import numpy
 import datetime as dt
-
 import time
-
 import csv
-
-import multiprocessing as mp
-
 from tables import *
-from time import sleep
-
 import sys
-
 import numpy as np
 
 # VARS
@@ -62,8 +52,10 @@ class TradeTable(tables.IsDescription):
 ############################
 
 
-def getDifferenceArray(symbol):
+def getDifferenceArray(symbol, datestr):
     
+    FILE = datestr + "f"
+
     t = time.time()
 
     # Opening files (for both read and write)
@@ -134,22 +126,4 @@ def getDifferenceArray(symbol):
 
 if __name__ == "__main__":
 
-    getDifferenceArray('ES')
-
-    # DO WITH NUMPY ARRAY
-
-    #print len(uno), len(dos), len(end - init)
-
-    #ti.books = books
-
-    #def gm(x):
-    #    return get_midpts(ti, books, x)
-
-    #p = mp.Pool(2)
-    #p.apply_async(get_midpts, (ti, books, uno))
-    #p.apply_async(get_midpts, (ti, books, dos))
-    #get_midpts(ti, books, uno)
-    #m = p.map(gm, [uno, dos])
-    #total = m[0] + m[1]
-    #print len(total)
-    #print end - init
+    getDifferenceArray('ES', "20111017")
