@@ -54,10 +54,7 @@ def to_ts(ts):
 
 # date - yyyymmdd (string)
 
-def filter_time_contract(product, datestr, start_time, end_time):
-
-    # import the file
-    input_file = tables.openFile(DATA_FOLDER + datestr)
+def filter_time_contract(input_file, product, datestr, start_time, end_time):
 
     # Convert to time date
     date = dt.date(int(datestr[0:4]), int(datestr[4:6]), int(datestr[6:8]))
@@ -94,7 +91,7 @@ def filter_time_contract(product, datestr, start_time, end_time):
     trade_table.append(selected_trades)
 
     input_file.close()
-    output_file.close()    
+    output_file.close()
 
 if __name__ == "__main__":
 
@@ -102,5 +99,7 @@ if __name__ == "__main__":
     END_TIME = dt.time(20, 00, 00, 1) # 3pm = 2000 GMT
     #END_TIME = dt.time(19, 00, 05, 1) # 2pm = 1900 GMT = 1400 EST
 
+    # import the file
+    input_file = tables.openFile(DATA_FOLDER + datestr)
 
-    filter_time_contract("ES", "20111017", START_TIME, END_TIME)
+    filter_time_contract(input_file, "ES", "20111017", START_TIME, END_TIME)
