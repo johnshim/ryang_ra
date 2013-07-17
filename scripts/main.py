@@ -16,8 +16,9 @@ import sys
 
 
 # VARS
-#DATA_FOLDER = "/datastore/dbd/auction/book_data/arca/" # This is the data folder on bushlnxeb01.chicagobooth.edu
-DATA_FOLDER = "C:\Users\Runnan\Dropbox\Work\budish_ra\data"
+#DATA_FOLDER = "/datastore/dbd/auction/book_data/arca/" # data folder on bushlnxeb01.chicagobooth.edu
+#DATA_FOLDER = "C:\Users\Runnan\Dropbox\Work\budish_ra\data" # data folder on Laptop (Windows)
+DATA_FOLDER = "/media/sf_Dropbox/Work/budish_ra/data/"
 
 ############################
 # Dan's definitions
@@ -168,16 +169,27 @@ def getDifferenceArray(timemidpts, interval):
 def printCorrCoefMatrix(corr, products):
     print '\t',
     for i in products:
-    print i, '\t',
+        print i, '\t',
     print '\n'
     for i in xrange(len(products)):
-    print products[i], '\t',
-    for j in xrange(len(products)):
-    print "{0:.2f}".format(corr[i,j]),
-    print '\t',
-    print '\n'
+        print products[i], '\t',
+        for j in xrange(len(products)):
+            print "{0:.2f}".format(corr[i,j]),
+            print '\t',
+        print '\n'
 
 
+def writeCorrCoefMatrix(corr, valid_products, interval, datestr, products):
+
+    outstr = ""
+    for i in xrange(len(valid_products)):
+        for j in xrange(len(valid_products)):
+            outstr = outstr + valid_products[i] + "," + valid_products[j] + "," + "{0:.5f}".format(corr[i,j]) + "\n"    
+
+    f = open("corr" + "_" + str(interval) + "_" + datestr + "_" + ''.join(products) + ".csv", 'w')
+    f.write(outstr)
+
+    f.close()
 
 ###########
 # MAIN
@@ -188,23 +200,30 @@ if __name__ == "__main__":
     print "Computing Regressions"
 
     # Set Parameters
+    try:
+        yr = sys.argv[1]
 
-    yr = sys.argv[1]
+        dates = glob.glob(DATA_FOLDER + yr + '*')
+    except:
+        dates = []
+    dates = ['20111017']
 
-    dates = glob.glob(DATA_FOLDER + yr + '*')
-
-    interval = 1 # in milliseconds
+    interval = 60000 # in milliseconds
     stock_list = ['XHB' , 'NYX' , 'XLK' , 'IBM' , 'CVX' , 'VHT' , 'AAPL' , 'DIA' , 'VDC' , 'BP' , 'BAC' , 'XLY' , 'XLV' , 'MSFT' , 'XLP' , 'VPU' , 'SPY' , 'PG' , 'VNQ' , 'XLF' , 'CME' , 'HD' , 'GOOG' , 'C' , 'GS' , 'XLE' , 'XLB' , 'GE' , 'VGT' , 'JPM' , 'XOM' , 'VAW' , 'PFE' , 'CSCO' , 'VCR' , 'VIS' , 'QQQ' , 'MS' , 'JNJ' , 'VOX' , 'LOW' ]
 
     # For each stock, we need to do the following
-    products = stock_list #['AAPL', 'XOM', 'GE', 'JNJ', 'IBM', 'DIA']
-    #products = ['AAPL','GOOG']
+    # products = stock_list #['AAPL', 'XOM', 'GE', 'JNJ', 'IBM', 'DIA']
+    products = ['AAPL','GOOG']
 
     for date in dates:
         valid_products = []
 
         print "Processing ", date
+
         datestr = date[38:46]
+
+        # TEMP FOR TESTING ONLY
+        datestr = '20111017'
 
         filename = datestr + "_TOP.h5" # "20111017_TOP.h5"
 
@@ -214,37 +233,35 @@ if __name__ == "__main__":
         input_file = tables.openFile(DATA_FOLDER + filename)
 
         loaddone = time.time()
-        #print "load time:\t", loaddone - start
+        print "load time:\t", loaddone - start
 
-        # Get list of all stocks in data file
-        # for now, we know all the stocks so we will just set it manually
-    
         ## Filter for stock
 
         START_TIME = dt.time(8, 30, 00, 0) # 1430 GMT = 9:30AM Eastern
         END_TIME = dt.time(14, 00, 00, 0) # 2000 GMT = 3:00PM Eastern
     
         for i in xrange(len(products)):
+            print "Processing ", products[i]
             try:
                 product = products[i]
 
                 temp = filterData(input_file, product, START_TIME, END_TIME, datestr)
 
                 filterdone = time.time()
-                #if i == 0:
-                #    print "filter time:\t", filterdone - loaddone
-                #else:
-                #    print "filter time:\t", filterdone - diffdone
+                if i == 0:
+                    print "filter time:\t", filterdone - loaddone
+                else:
+                    print "filter time:\t", filterdone - diffdone
 
                 # break up temp
                 books = temp[0]
                 init = temp[1]
                 end = temp[2]
 
-                timemidpts = toTimeSpace(books, START_TIME, END_TIME, init, end)
+                timemidpts = toTimeSpace(books, init, end)
 
                 timespacedone = time.time()
-                #print "tspace time:\t", timespacedone - filterdone
+                print "tspace time:\t", timespacedone - filterdone
                 
                 try:
                     pd[i,:] = getDifferenceArray(timemidpts, interval)
@@ -253,32 +270,19 @@ if __name__ == "__main__":
                     pd[i,:] = getDifferenceArray(timemidpts, interval)            
 
                 diffdone = time.time()
-                #print "diff time:\t", diffdone - timespacedone
+                print "diff time:\t", diffdone - timespacedone
                 valid_products.append(product)
             except:
                 print products[i], 'failed'
 
-
-        
-
         # Take correlation across stocks
         corr = np.corrcoef(pd)
         corrdone = time.time()
-        #print "corr time:\t", corrdone - diffdone
+        print "corr time:\t", corrdone - diffdone
 
+        # Display correlation matrix
+        printCorrCoefMatrix(corr, products)
 
-
-        # Print calculated correlations to file
-        outstr = ""
-        for i in xrange(len(valid_products)):
-            for j in xrange(len(valid_products)):
-                outstr = outstr + valid_products[i] + "," + valid_products[j] + "," + "{0:.5f}".format(corr[i,j]) + "\n"
-
-        f = open("corr" + "_" + str(interval) + "_" + datestr + "_" + ''.join(products) + ".csv", 'w')
-        f.write(outstr)
-
-
-        #np.savetxt("pd.csv", np.transpose(pd), delimiter=",")
 
         # Clean up
         input_file.close()
