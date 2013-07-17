@@ -147,22 +147,7 @@ def getDifferenceArray(timemidpts, interval):
     mv = (ret[interval - 1:] - ret[:1 - interval]) / interval
 
     return np.diff(mv)
-"""
-    #pd = np.zeros(len(timemidpts) - 2 * interval - 1)
 
-    #pd[0] = sum(timemidpts[interval:2*interval - 1]) - sum(timemidpts[0:interval-1])
-
-    #for i in xrange(1, len(pd)):
-    # cheesy cheat, not sure if actually saves time?
-    # task: reimplement with just adding arrays 
-    #    pd[i] = pd[i-1] + timemidpts[i-1] - 2*timemidpts[i+interval-1] + timemidpts[i+2*interval-1]
-
-
-    # Take the average
-    #pd = pd / interval;
-
-    #return pd
-"""
 
 def printCorrCoefMatrix(corr, products):
     print '\t',
