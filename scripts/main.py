@@ -16,7 +16,8 @@ import sys
 
 
 # VARS
-DATA_FOLDER = "/datastore/dbd/auction/book_data/arca/"
+#DATA_FOLDER = "/datastore/dbd/auction/book_data/arca/" # This is the data folder on bushlnxeb01.chicagobooth.edu
+DATA_FOLDER = "C:\Users\Runnan\Dropbox\Work\budish_ra\data"
 
 ############################
 # Dan's definitions
@@ -53,6 +54,7 @@ class TradeTable(tables.IsDescription):
 ############################
 ############################
 
+
 def filterData(input_file, product, START_TIME, END_TIME, datestr):
     # Convert to time date
     date = dt.date(int(datestr[0:4]), int(datestr[4:6]), int(datestr[6:8]))
@@ -68,7 +70,8 @@ def filterData(input_file, product, START_TIME, END_TIME, datestr):
     
     return [selected_books, init, end]
 
-def toTimeSpace(books, START_TIME, END_TIME, init, end):
+
+def toTimeSpace(books, init, end):
     # Extract the relevant timestamps
 
     times1000 = books['timestamp']
@@ -134,6 +137,7 @@ def toTimeSpace(books, START_TIME, END_TIME, init, end):
 
     return timemidpts
 
+
 def getDifferenceArray(timemidpts, interval):
 
     # PD = avg midpt over (t,t+k) - avg midpt over (0,t)
@@ -159,6 +163,21 @@ def getDifferenceArray(timemidpts, interval):
     pd = pd / interval;
 
     return pd
+
+
+def printCorrCoefMatrix(corr, products):
+    print '\t',
+    for i in products:
+    print i, '\t',
+    print '\n'
+    for i in xrange(len(products)):
+    print products[i], '\t',
+    for j in xrange(len(products)):
+    print "{0:.2f}".format(corr[i,j]),
+    print '\t',
+    print '\n'
+
+
 
 ###########
 # MAIN
@@ -247,18 +266,7 @@ if __name__ == "__main__":
         corrdone = time.time()
         #print "corr time:\t", corrdone - diffdone
 
-        """
-        print '\t',
-        for i in products:
-        print i, '\t',
-        print '\n'
-        for i in xrange(len(products)):
-        print products[i], '\t',
-        for j in xrange(len(products)):
-        print "{0:.2f}".format(corr[i,j]),
-        print '\t',
-        print '\n'
-        """
+
 
         # Print calculated correlations to file
         outstr = ""
