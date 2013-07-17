@@ -143,28 +143,26 @@ def getDifferenceArray(timemidpts, interval):
 
     # PD = avg midpt over (t,t+k) - avg midpt over (0,t)
 
-    pd = np.zeros(len(timemidpts) - 2 * interval - 1)
-    #av = np.zeros(len(pd) + 1)
+    ret = np.cumsum(timemidpts, dtype=float)
+    mv = (ret[interval - 1:] - ret[:1 - interval]) / interval
 
-    #for i in xrange(0, len(pd)):
-    #    av[i] = np.mean(timemidpts[i: i - 1 + interval])
+    return np.diff(mv)
+"""
+    #pd = np.zeros(len(timemidpts) - 2 * interval - 1)
 
-    #pd = np.diff(av)
+    #pd[0] = sum(timemidpts[interval:2*interval - 1]) - sum(timemidpts[0:interval-1])
 
-
-    pd[0] = sum(timemidpts[interval:2*interval - 1]) - sum(timemidpts[0:interval-1])
-
-    for i in xrange(1, len(pd)):
+    #for i in xrange(1, len(pd)):
     # cheesy cheat, not sure if actually saves time?
     # task: reimplement with just adding arrays 
-        pd[i] = pd[i-1] + timemidpts[i-1] - 2*timemidpts[i+interval-1] + timemidpts[i+2*interval-1]
+    #    pd[i] = pd[i-1] + timemidpts[i-1] - 2*timemidpts[i+interval-1] + timemidpts[i+2*interval-1]
 
 
     # Take the average
-    pd = pd / interval;
+    #pd = pd / interval;
 
-    return pd
-
+    #return pd
+"""
 
 def printCorrCoefMatrix(corr, products):
     print '\t',
@@ -212,8 +210,9 @@ if __name__ == "__main__":
     stock_list = ['XHB' , 'NYX' , 'XLK' , 'IBM' , 'CVX' , 'VHT' , 'AAPL' , 'DIA' , 'VDC' , 'BP' , 'BAC' , 'XLY' , 'XLV' , 'MSFT' , 'XLP' , 'VPU' , 'SPY' , 'PG' , 'VNQ' , 'XLF' , 'CME' , 'HD' , 'GOOG' , 'C' , 'GS' , 'XLE' , 'XLB' , 'GE' , 'VGT' , 'JPM' , 'XOM' , 'VAW' , 'PFE' , 'CSCO' , 'VCR' , 'VIS' , 'QQQ' , 'MS' , 'JNJ' , 'VOX' , 'LOW' ]
 
     # For each stock, we need to do the following
-    # products = stock_list #['AAPL', 'XOM', 'GE', 'JNJ', 'IBM', 'DIA']
-    products = ['AAPL','GOOG']
+    products = ['AAPL', 'XOM', 'GE', 'JNJ', 'IBM', 'DIA']
+    #products = ['AAPL', 'XOM', 'GE', 'JNJ', 'IBM', 'DIA']
+    #products = ['AAPL','GOOG']
 
     for date in dates:
         valid_products = []
@@ -241,8 +240,8 @@ if __name__ == "__main__":
         END_TIME = dt.time(14, 00, 00, 0) # 2000 GMT = 3:00PM Eastern
     
         for i in xrange(len(products)):
-            print "Processing ", products[i]
-            try:
+                print "Processing ", products[i]
+                #try:
                 product = products[i]
 
                 temp = filterData(input_file, product, START_TIME, END_TIME, datestr)
@@ -266,14 +265,17 @@ if __name__ == "__main__":
                 try:
                     pd[i,:] = getDifferenceArray(timemidpts, interval)
                 except:
-                    pd = np.zeros([len(products), len(timemidpts) - 2 * interval - 1])
+                    print [len(products), len(timemidpts) - interval]
+                    pd = np.zeros([len(products), len(timemidpts) - interval])
                     pd[i,:] = getDifferenceArray(timemidpts, interval)            
 
                 diffdone = time.time()
                 print "diff time:\t", diffdone - timespacedone
                 valid_products.append(product)
-            except:
-                print products[i], 'failed'
+                #except Exception as inst:
+                #print products[i], 'failed'
+                #print type(inst)
+                
 
         # Take correlation across stocks
         corr = np.corrcoef(pd)
