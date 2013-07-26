@@ -9,14 +9,8 @@ import time
 import numpy
 import numpy as np
 
-from scipy import signal
-from scipy import interpolate
-
 import glob
 import sys
-
-# Ron's packages
-
 
 # VARS
 DATA_FOLDER = "/datastore/dbd/auction/book_data/arca/" # data folder on bushlnxeb01.chicagobooth.edu
@@ -58,6 +52,7 @@ class TradeTable(tables.IsDescription):
 ############################
 ############################
 
+# Filters order book updates to restrict for a single product and only during market open hours
 
 def filterData(input_file, product, START_TIME, END_TIME, datestr):
     # Convert to time date
@@ -74,11 +69,11 @@ def filterData(input_file, product, START_TIME, END_TIME, datestr):
     
     return [selected_books, init, end]
 
-def toTimeSpace(books, init, end):
+# Converts prices stored as order book updates into a time series of the midpoint between
+# the standing best bid / best offer
+
+def toTimeSpace(books, init, end, mode='default'):
     # Extract the relevant timestamps
-
-    a = time.time()
-
     times1000 = books['timestamp']
     times = times1000 / 1000 # scale to milliseconds
 
@@ -107,72 +102,56 @@ def toTimeSpace(books, init, end):
     bestbids = np.array([y[0,0] for y in books['bid']])
     midpts = (bestasks + bestbids) / 2.0
 
-    b = time.time()
-    print "Sec1 time: \t ", b - a
-
-    idx = np.searchsorted(times, np.array(range(int(init), int(end)+1)), side='left')
-    timemidpts = midpts[idx-1]
-
+    if mode == 'default':
+        # Vectorized: Fixed time cost for allocation, but much faster for large
+        # assets e.g. SPY
+        idx = np.searchsorted(times, np.array(range(int(init), int(end)+1)), side='left')
+        timemidpts = midpts[idx-1]
+    elif mode == 'old':
     
-    #f = interpolate.interp1d(times, midpts, kind='linear', bounds_error=False, fill_value=midpts[0])
-    
+        # i is index of book update
+        for i in xrange(len(times)):
 
-    #timemidpts = f(alltimes)
-    #timemidpts = np.interp(alltimes, times, midpts)
-    """
-    # i is index of book update
-    for i in xrange(len(times)):
-    #for i in xrange(20000):
-        # t is timestamp of latest book update
-        t = times[i]
+            # t is timestamp of latest book update
+            t = times[i]
 
-        # If same time as previous update
-        if t == oldUpdateTime:
-            # Update book at that time
-            #timemidpts[t - offset + preset] = (books[i]['ask'][0,0] + books[i]['bid'][0,0]) / 2.0
-            timemidpts[t - offset + preset] = midpts[i]
+            # If same time as previous update
+            if t == oldUpdateTime:
+                # Update book at that time
+                timemidpts[t - offset + preset] = midpts[i]
 
-        # If gap in updates, we need to replicate old price
-        elif t > oldUpdateTime:
-            # Copy old time for diff times
-            timemidpts[oldUpdateTime - offset + preset : t - offset + preset] = oldPrice
+            # If gap in updates, we need to replicate old price
+            elif t > oldUpdateTime:
+                # Copy old time for diff times
+                timemidpts[oldUpdateTime - offset + preset : t - offset + preset] = oldPrice
 
-            # Update book at new time
-            #timemidpts[t - offset + preset] = (books[i]['ask'][0,0] + books[i]['bid'][0,0]) / 2.0
-            timemidpts[t - offset + preset] = midpts[i]
-        else:
-            print "ERROR"
+                # Update book at new time
+                timemidpts[t - offset + preset] = midpts[i]
+            else:
+                print "ERROR"
 
-        # Update previous update time/price
-        oldUpdateTime = t
-        #oldPrice = (books[i]['ask'][0,0] + books[i]['bid'][0,0]) / 2.0
-        oldPrice = midpts[i]
+                # Update previous update time/price
+                oldUpdateTime = t
+                oldPrice = midpts[i]
         
-    # Fill in beginning and end
-    #timemidpts[0 : preset] = (books[0]['ask'][0,0] + books[0]['bid'][0,0]) / 2.0
-    
-    print "Sec2 time: \t ", time.time() - b
-    timemidpts[0 : preset] = midpts[0]
+        # Fill in beginning and end
+        timemidpts[0 : preset] = midpts[0]
+        timemidpts[times[-1] - offset + preset : len(timemidpts)] = midpts[-1]
 
-    #timemidpts[times[-1] - offset + preset : len(timemidpts)] = (books[-1]['ask'][0,0] + books[-1]['bid'][0,0]) / 2.0
-    timemidpts[times[-1] - offset + preset : len(timemidpts)] = midpts[-1]
-    """
     return timemidpts
 
-def toTimeSpaceInterpolate(books, init, end):
-    # Construct xold, yold
-    return 0
+# Calculates the percentage change of the moving average from a
+# timeseries of midpoint prices
 
 def getDifferenceArray(timemidpts, interval):
 
     # PD = avg midpt over (t,t+k) - avg midpt over (0,t)
-
     ret = np.cumsum(timemidpts, dtype=float)
     mv = (ret[interval - 1:] - ret[:1 - interval]) / interval
 
     return np.diff(mv)
 
-
+# Displays correlation coefficient matrix on screen
 def printCorrCoefMatrix(corr, products):
     print '\t',
     for i in products:
@@ -185,7 +164,7 @@ def printCorrCoefMatrix(corr, products):
             print '\t',
         print '\n'
 
-
+# Write correlation coefficient matrix to file
 def writeCorrCoefMatrix(corr, valid_products, interval, datestr, products):
 
     outstr = ""
@@ -197,6 +176,7 @@ def writeCorrCoefMatrix(corr, valid_products, interval, datestr, products):
     f.write(outstr)
 
     f.close()
+
 
 ###########
 # MAIN
@@ -241,9 +221,6 @@ if __name__ == "__main__":
             print date, " already done."
             continue
 
-        # TEMP FOR TESTING ONLY
-        # datestr = '20111017'
-
         filename = datestr + "_TOP.h5" # "20111017_TOP.h5"
 
         start = time.time()
@@ -260,7 +237,7 @@ if __name__ == "__main__":
         END_TIME = dt.time(14, 00, 00, 0) # 2000 GMT = 3:00PM Eastern
     
         for i in xrange(len(products)):
-                #print "Processing ", products[i]
+                print "Processing ", products[i]
                 #try:
                 product = products[i]
 
@@ -290,38 +267,23 @@ if __name__ == "__main__":
                 diffdone = time.time()
                 print "diff time:\t", diffdone - diffstart
                     
-
-                """
-                    try:
-                        #pd[i,:] = getDifferenceArray(timemidpts, interval)
-
-                        print "CONCAT"
-                    except:
-                        #print [len(valid_products), len(timemidpts) - interval]
-                        #pd = np.zeros([len(valid_products), len(timemidpts) - interval])
-                        #pd[i,:] = getDifferenceArray(timemidpts, interval)            
-
-                        print "NEW"
-                """
                 valid_products.append(product)
                 #except:
                 #print products[i], 'failed'
-
                 
-        #print pd
-
         # Take correlation across stocks
         try:
             corr = np.corrcoef(pd)
             corrdone = time.time()
             print "corr time:\t", corrdone - diffdone
             
-        # Display correlation matrix
+            # Display correlation matrix
             printCorrCoefMatrix(corr, valid_products)
 
-        #writeCorrCoefMatrix(corr, valid_products, interval, datestr, products)
+            # Write correlation matrix
+            #writeCorrCoefMatrix(corr, valid_products, interval, datestr, products)
 
-        # Clean up
+            # Clean up
             input_file.close()
         except:
             input_file.close)(
