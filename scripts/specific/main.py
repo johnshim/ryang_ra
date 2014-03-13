@@ -10,7 +10,6 @@ import numpy
 import numpy as np
 
 from scipy import signal
-from scipy import interpolate
 
 import glob
 import sys
@@ -74,16 +73,12 @@ def filterData(input_file, product, START_TIME, END_TIME, datestr):
     
     return [selected_books, init, end]
 
-def getBest(sidebook):
-    return sidebook[0,0]
 
 def toTimeSpace(books, init, end):
     # Extract the relevant timestamps
 
-    a = time.time()
-
     times1000 = books['timestamp']
-    times = times1000 / 1000 # scale to milliseconds
+    times = times1000 / 1000
 
     # Scale init, end
     init = init / 1000
@@ -105,27 +100,6 @@ def toTimeSpace(books, init, end):
     oldUpdateTime = times[0]
     oldPrice = 0
 
-    # Precompute midpoints from best bid / best ask
-    bestasks = np.array([y[0,0] for y in books['ask']])
-
-    bestbids = np.array([y[0,0] for y in books['bid']])
-
-    midpts = (bestasks + bestbids) / 2.0
-
-    b = time.time()
-    print "Sec1 time: \t ", b - a
-
-    #print len(midpts), len(times), len(alltimes)
-    #idx = np.searchsorted(times, np.array(range(int(init), int(end)+1)), side='left')
-    #timemidpts = midpts[idx-1]
-
-    
-    #f = interpolate.interp1d(times, midpts, kind='linear', bounds_error=False, fill_value=midpts[0])
-    
-
-    #timemidpts = f(alltimes)
-    #timemidpts = np.interp(alltimes, times, midpts)
-    
     # i is index of book update
     for i in xrange(len(times)):
     #for i in xrange(20000):
@@ -135,8 +109,7 @@ def toTimeSpace(books, init, end):
         # If same time as previous update
         if t == oldUpdateTime:
             # Update book at that time
-            #timemidpts[t - offset + preset] = (books[i]['ask'][0,0] + books[i]['bid'][0,0]) / 2.0
-            timemidpts[t - offset + preset] = midpts[i]
+            timemidpts[t - offset + preset] = (books[i]['ask'][0,0] + books[i]['bid'][0,0]) / 2.0
 
         # If gap in updates, we need to replicate old price
         elif t > oldUpdateTime:
@@ -144,37 +117,27 @@ def toTimeSpace(books, init, end):
             timemidpts[oldUpdateTime - offset + preset : t - offset + preset] = oldPrice
 
             # Update book at new time
-            #timemidpts[t - offset + preset] = (books[i]['ask'][0,0] + books[i]['bid'][0,0]) / 2.0
-            timemidpts[t - offset + preset] = midpts[i]
+            timemidpts[t - offset + preset] = (books[i]['ask'][0,0] + books[i]['bid'][0,0]) / 2.0
         else:
             print "ERROR"
 
         # Update previous update time/price
         oldUpdateTime = t
-        #oldPrice = (books[i]['ask'][0,0] + books[i]['bid'][0,0]) / 2.0
-        oldPrice = midpts[i]
-        
-    # Fill in beginning and end
-    #timemidpts[0 : preset] = (books[0]['ask'][0,0] + books[0]['bid'][0,0]) / 2.0
-    
-    print "Sec2 time: \t ", time.time() - b
-    timemidpts[0 : preset] = midpts[0]
+        oldPrice = (books[i]['ask'][0,0] + books[i]['bid'][0,0]) / 2.0
 
-    #timemidpts[times[-1] - offset + preset : len(timemidpts)] = (books[-1]['ask'][0,0] + books[-1]['bid'][0,0]) / 2.0
-    timemidpts[times[-1] - offset + preset : len(timemidpts)] = midpts[-1]
-    
+    # Fill in beginning and end
+    timemidpts[0 : preset] = (books[0]['ask'][0,0] + books[0]['bid'][0,0]) / 2.0
+    timemidpts[times[-1] - offset + preset : len(timemidpts)] = (books[-1]['ask'][0,0] + books[-1]['bid'][0,0]) / 2.0
+
     return timemidpts
 
-def toTimeSpaceInterpolate(books, init, end):
-    # Construct xold, yold
-    return 0
 
 def getDifferenceArray(timemidpts, interval):
 
     # PD = avg midpt over (t,t+k) - avg midpt over (0,t)
 
     ret = np.cumsum(timemidpts, dtype=float)
-    mv = (ret[interval - 1:] - ret[:1 - interval]) / interval
+    mv = (ret[interval:] - ret[:len(ret) - interval]) / interval
 
     return np.diff(mv)
 
@@ -220,32 +183,32 @@ if __name__ == "__main__":
         dates = glob.glob(DATA_FOLDER + yr + '*')
     except:
         dates = []
-    #dates = ['/datastore/dbd/auction/book_data/arca/20111017_TOP.h5']
+    #dates = ['20111017']
 
     try:
-        interval = sys.argv[2]
+        interval = int(sys.argv[2])
     except:
-        interval = 60000 # in milliseconds
+        interval = 1 # in milliseconds
 
     stock_list = ['XHB' , 'NYX' , 'XLK' , 'IBM' , 'CVX' , 'VHT' , 'AAPL' , 'DIA' , 'VDC' , 'BP' , 'BAC' , 'XLY' , 'XLV' , 'MSFT' , 'XLP' , 'VPU' , 'SPY' , 'PG' , 'VNQ' , 'XLF' , 'CME' , 'HD' , 'GOOG' , 'C' , 'GS' , 'XLE' , 'XLB' , 'GE' , 'VGT' , 'JPM' , 'XOM' , 'VAW' , 'PFE' , 'CSCO' , 'VCR' , 'VIS' , 'QQQ' , 'MS' , 'JNJ' , 'VOX' , 'LOW' ]
 
     # For each stock, we need to do the following
     #products = stock_list
     #products = ['AAPL', 'XOM', 'GE', 'JNJ', 'IBM', 'DIA']
-    products = ['AAPL', 'XOM', 'GE', 'JNJ', 'IBM', 'DIA']
-    #products = ['AAPL','GOOG']
+    #products = ['AAPL', 'XOM', 'GE', 'JNJ', 'IBM', 'DIA']
+    products = ['AAPL','GOOG']
 
     for date in dates:
         valid_products = []
 
-        print "Processing ", date
+        print "Processing ", date, interval
 
         datestr = date[38:46]
 
         # Skip if already processed
-        #if len(glob.glob('*' + datestr + '*' + ''.join(products) + '*')) != 0:
-        #    print date, " already done."
-        #    continue
+        if len(glob.glob('*' + str(interval) + '*' + datestr + '*' + ''.join(products) + '*')) != 0:
+            print date, " already done."
+            continue
 
         # TEMP FOR TESTING ONLY
         # datestr = '20111017'
@@ -266,7 +229,7 @@ if __name__ == "__main__":
         END_TIME = dt.time(14, 00, 00, 0) # 2000 GMT = 3:00PM Eastern
     
         for i in xrange(len(products)):
-                #print "Processing ", products[i]
+                print "Processing ", products[i]
                 #try:
                 product = products[i]
 
@@ -314,7 +277,7 @@ if __name__ == "__main__":
                 #print products[i], 'failed'
 
                 
-        #print pd
+                
 
         # Take correlation across stocks
         corr = np.corrcoef(pd)
@@ -322,9 +285,9 @@ if __name__ == "__main__":
         print "corr time:\t", corrdone - diffdone
 
         # Display correlation matrix
-        printCorrCoefMatrix(corr, valid_products)
+        #printCorrCoefMatrix(corr, valid_products)
 
-        #writeCorrCoefMatrix(corr, valid_products, interval, datestr, products)
+        writeCorrCoefMatrix(corr, valid_products, interval, datestr, products)
 
         # Clean up
         input_file.close()

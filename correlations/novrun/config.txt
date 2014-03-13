@@ -1,0 +1,7 @@
+run_name, novrun
+data_folder, /datastore/dbd/auction/book_data/arca/
+start_time, 08:30:00
+end_time, 14:00:00
+dates, 20100310, 20110311
+intervals, 1000
+tickers, AAPL, XOM, LOW, GS, C

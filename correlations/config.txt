@@ -1,0 +1,20 @@
+Run Name: Name of this run (Output folder will be named this)
+run_name, run1
+
+Data Folder: Location of HDF5 Arca Books
+data_folder, /datastore/dbd/auction/book_data/arca/
+
+Start Time: Starting Time (Central Time)
+start_time, 08:30:00
+
+End Time: Ending Time (Central Time)
+end_time, 15:00:00
+
+Dates: Dates to compute (YYYYMMDD, enter YYYY for just year, YYYYMM for just month)
+dates, 20100310, 20110311
+
+Intervals: Intervals to compute (milliseconds)
+intervals, 1000
+
+Tickers: Tickers to compute (Leave empty for all tickers)
+tickers,
