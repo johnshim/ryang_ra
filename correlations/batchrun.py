@@ -232,8 +232,6 @@ if __name__ == "__main__":
     print intervals
     print products
 
-    sys.exit()
-
     # Create folder for output
     folder_name = RUN_NAME + "/"
     if len(glob.glob(folder_name)) == 0:
